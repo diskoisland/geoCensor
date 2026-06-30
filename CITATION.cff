@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use geoCensor, please cite it as below."
+title: "geoCensor: Censoring-Aware Analysis of USGS National Geochemical Database Data"
+abstract: >-
+  An R package for parsing, modelling, and visualising left- and right-censored
+  element concentrations from the U.S. Geological Survey National Geochemical
+  Database (NGDB) and similar datasets, including detection-limit parsing and
+  censoring-aware maximum-likelihood lognormal geometric means by state.
+type: software
+authors:
+  - family-names: Edwards
+    given-names: Ross
+    email: pedwards5@wisc.edu
+version: 0.1.0
+date-released: "2026-06-30"
+license: MIT
+url: "https://github.com/diskoisland/geoCensor"
+repository-code: "https://github.com/diskoisland/geoCensor"
+keywords:
+  - geochemistry
+  - censored data
+  - maximum likelihood
+  - detection limits
+  - silver
+  - USGS NGDB
