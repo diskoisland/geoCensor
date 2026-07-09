@@ -2,16 +2,13 @@
 
 **Censoring-aware analysis of USGS National Geochemical Database (NGDB) data.**
 
-Geochemical concentration data are heavily **left-censored**: a large fraction of
-samples fall below the analytical detection limit, and the limit itself varies by
-method and era. Naïve approaches (dropping non-detects, or substituting LOD/2)
-bias estimates of central tendency. **geoCensor** treats detection limits
-explicitly: it parses the USGS NGDB `qvalue`/`qualifier` encodings into
-interval-censored fields and fits **maximum-likelihood lognormal models** (left-
-and right-censored, via interval-censored survival regression) to estimate
-**geometric means with confidence intervals**, optionally by state. It also
-provides substitution-based alternatives for comparison, spatial joins, robust
-correlations, robust PCA, and mapping.
+Censoring-aware analysis of USGS National Geochemical Database (NGDB) data.
+Geochemical datasets are often strongly left-censored because many samples are reported as being below the analytical detection limit. In the NGDB, the detection limit varies by methods and over time, making simple treatments of non-detects problematic. Removing non-detects or replacing them with values such as one-half the detection limit can bias estimates of central tendency.
+
+In this analysis, detection limits were handled explicitly rather than replaced with arbitrary values. The USGS NGDB qvalue and qualifier fields were first converted into concentration intervals, including open-ended intervals for non-detects and greater-than values. Geometric means and confidence intervals were estimated from maximum-likelihood lognormal models using interval-censored survival regression. Estimates were calculated for the full dataset and, where needed or separately by state. Substitution-based estimates were generated for comparison. Additional geoCensor tools were used for spatial joins, robust correlation analysis, robust PCA, and spatial mapping.
+
+For the MLE calculation, the reported values were passed to the model using the USGS qualifiers to determine its form. Non-detects were entered as values between zero and the reported detection limit. Greater-than values were entered as censored above the reported upper limit. Unqualified detections were entered as measured concentrations. The lognormal model was fit using  survival::survreg(..., dist = "lognormal"), and the geometric mean was taken as exp(meanlog).
+
 
 ## Installation
 
@@ -86,10 +83,9 @@ right-censored as `(ULOD, Inf)`, and detections as exact, fitting a lognormal by
 
 ## Data
 
-geoCensor ships **no data**. It operates on USGS National Geochemical Database
-exports (soil and stream-sediment "best value" and "chemistry" tables, plus the
-"main" sample-metadata table), available from the USGS Mineral Resources Online
-Spatial Data portal (<https://mrdata.usgs.gov/geochemistry/>).
+The geoCensor package **does not include geochemical data**. Instead, it is designed to work with user-downloaded USGS National Geochemical Database exports, including the soil and stream-sediment “best value” and “chemistry” tables, together with the “main” sample-metadata table. These files are available through the USGS Mineral Resources Online Spatial Data portal
+(https://mrdata.usgs.gov/ngdb/).
+
 
 ## Citation
 
