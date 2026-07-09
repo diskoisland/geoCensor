@@ -1,58 +1,54 @@
-#' Build a wide table of metals (ppm → mg/kg) using substitution for censoring
+#' Build a wide table of metals (mg/kg) using substitution for censoring
 #'
-#' @param chem_df Chemistry long table (lab_id, species, qvalue, unit, qualifier).
+#' Censoring is parsed with [parse_usgs_q()], so left/right censoring encoded via
+#' negative qvalues, the `.1111` upper-limit suffix, **or** the `L`/`<`/`G`/`>`
+#' qualifier are all handled consistently with the maximum-likelihood path.
+#' Left-censored values are substituted at `lod_factor` times the detection limit,
+#' right-censored values at the upper limit, and detections kept as reported.
+#' Concentrations are converted to mg/kg from the native reporting unit
+#' (`ppm` = mg/kg; `pct` = weight percent = 1e4 mg/kg); other units are set to `NA`.
+#'
+#' @param chem_df Chemistry long table (lab_id, species, unit, qvalue, qualifier).
 #' @param elements Character vector of element symbols to include.
 #' @param lod_factor Factor for left-censored substitution (default LOD/2).
 #' @param suffix Suffix for column names (default "_mgkg").
 #'
-#' @return Wide data frame: one row per lab_id, one column per element.
+#' @return Wide data frame: one row per lab_id, one column per element (mg/kg).
 #' @export
 build_metals_wide <- function(chem_df,
                               elements,
                               lod_factor = 0.5,
                               suffix     = "_mgkg") {
   df <- chem_df %>%
-    dplyr::filter(.data$species %in% elements) %>%
-    dplyr::mutate(
-      qvalue_raw = as.character(.data$qvalue),
-      q_num      = readr::parse_number(.data$qvalue_raw),
-      has_upper  = stringr::str_detect(.data$qvalue_raw, "\\.1111$")
-    )
-  
-  left_cen   <- is.finite(df$q_num) & df$q_num < 0
-  right_cen  <- df$has_upper
-  left_limit <- ifelse(left_cen, abs(df$q_num), NA_real_)
-  right_limit <- ifelse(
-    right_cen,
-    readr::parse_number(stringr::str_remove(df$qvalue_raw, "\\.1111$")),
-    NA_real_
+    dplyr::filter(.data$species %in% elements)
+
+  # censoring fields (native units): negative qvalue, .1111 suffix, and L/</G/> qualifier
+  cen <- parse_usgs_q(df$qvalue, df$qualifier)
+
+  # substitution value in the native reporting unit
+  val_native <- dplyr::case_when(
+    cen$left_cen  & is.finite(cen$left_limit)  ~ lod_factor * cen$left_limit,
+    cen$right_cen & is.finite(cen$right_limit) ~ cen$right_limit,
+    TRUE                                       ~ cen$detected_val
   )
-  
-  detected_val <- ifelse(left_cen | right_cen, NA_real_, df$q_num)
-  
-  detected_val <- ifelse(df$unit == "ppm", detected_val * 1000, detected_val)
-  left_limit   <- ifelse(df$unit == "ppm", left_limit   * 1000, left_limit)
-  right_limit  <- ifelse(df$unit == "ppm", right_limit  * 1000, right_limit)
-  
-  val_ugkg <- dplyr::case_when(
-    left_cen  & is.finite(left_limit)  ~ lod_factor * left_limit,
-    right_cen & is.finite(right_limit) ~ right_limit,
-    TRUE                               ~ detected_val
+
+  # convert native unit -> mg/kg (ppm = mg/kg; pct = weight percent = 1e4 mg/kg)
+  to_mgkg <- dplyr::case_when(
+    df$unit == "ppm" ~ 1,
+    df$unit == "pct" ~ 1e4,
+    TRUE             ~ NA_real_
   )
-  val_mgkg <- val_ugkg / 1000
-  
-  df_sub <- df %>%
-    dplyr::transmute(
-      lab_id,
-      species = paste0(.data$species, suffix),
-      val_mgkg = val_mgkg
-    )
-  
-  df_sub %>%
+  val_mgkg <- val_native * to_mgkg
+
+  tibble::tibble(
+    lab_id   = df$lab_id,
+    species  = paste0(df$species, suffix),
+    val_mgkg = val_mgkg
+  ) %>%
     tidyr::pivot_wider(
-      id_cols     = .data$lab_id,
-      names_from  = .data$species,
-      values_from = .data$val_mgkg,
+      id_cols     = "lab_id",
+      names_from  = "species",
+      values_from = "val_mgkg",
       values_fn   = list(val_mgkg = ~ mean(.x, na.rm = TRUE))
     )
 }

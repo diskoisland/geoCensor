@@ -26,7 +26,10 @@ Imports:
     tibble,
     ggplot2,
     usmap,
+    maps,
     magrittr,
-    rlang
+    rlang,
+    tidyr,
+    stats
 URL: https://github.com/diskoisland/geoCensor
 BugReports: https://github.com/diskoisland/geoCensor/issues

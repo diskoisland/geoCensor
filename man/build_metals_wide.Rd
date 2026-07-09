@@ -2,12 +2,12 @@
 % Please edit documentation in R/build_metals_wide.r
 \name{build_metals_wide}
 \alias{build_metals_wide}
-\title{Build a wide table of metals (ppm → mg/kg) using substitution for censoring}
+\title{Build a wide table of metals (mg/kg) using substitution for censoring}
 \usage{
 build_metals_wide(chem_df, elements, lod_factor = 0.5, suffix = "_mgkg")
 }
 \arguments{
-\item{chem_df}{Chemistry long table (lab_id, species, qvalue, unit, qualifier).}
+\item{chem_df}{Chemistry long table (lab_id, species, unit, qvalue, qualifier).}
 
 \item{elements}{Character vector of element symbols to include.}
 
@@ -16,8 +16,14 @@ build_metals_wide(chem_df, elements, lod_factor = 0.5, suffix = "_mgkg")
 \item{suffix}{Suffix for column names (default "_mgkg").}
 }
 \value{
-Wide data frame: one row per lab_id, one column per element.
+Wide data frame: one row per lab_id, one column per element (mg/kg).
 }
 \description{
-Build a wide table of metals (ppm → mg/kg) using substitution for censoring
+Censoring is parsed with \code{\link[=parse_usgs_q]{parse_usgs_q()}}, so left/right censoring encoded via
+negative qvalues, the \code{.1111} upper-limit suffix, \strong{or} the \code{L}/\code{<}/\code{G}/\code{>}
+qualifier are all handled consistently with the maximum-likelihood path.
+Left-censored values are substituted at \code{lod_factor} times the detection limit,
+right-censored values at the upper limit, and detections kept as reported.
+Concentrations are converted to mg/kg from the native reporting unit
+(\code{ppm} = mg/kg; \code{pct} = weight percent = 1e4 mg/kg); other units are set to \code{NA}.
 }

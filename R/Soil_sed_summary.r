@@ -61,8 +61,9 @@ fit_lognorm_with_quants <- function(df, probs = c(0.1, 0.5, 0.9, 0.95, 0.99)) {
   }
 
   fit     <- survival::survreg(survival::Surv(lower[ok], upper[ok], type = "interval2") ~ 1, dist = "lognormal")
-  meanlog <- unname(stats::coef(fit)[1])
-  sdlog   <- fit$scale
+  meanlog    <- unname(stats::coef(fit)[1])
+  sdlog      <- fit$scale
+  se_meanlog <- summary(fit)$table[1, "Std. Error"]  # SE of the mean (for geomean CI)
   qs_ugkg <- stats::qlnorm(probs, meanlog = meanlog, sdlog = sdlog)
   names(qs_ugkg) <- paste0("p", probs * 100)
   z <- stats::qnorm(0.975)
@@ -71,8 +72,8 @@ fit_lognorm_with_quants <- function(df, probs = c(0.1, 0.5, 0.9, 0.95, 0.99)) {
     method = "MLE", n_total = sum(ok), n_left = sum(is_left[ok]), n_right = sum(is_right[ok]),
     meanlog = meanlog, sdlog = sdlog,
     geomean = exp(meanlog) / 1000,
-    ci_low  = exp(meanlog - z * sdlog) / 1000,
-    ci_high = exp(meanlog + z * sdlog) / 1000,
+    ci_low  = exp(meanlog - z * se_meanlog) / 1000,
+    ci_high = exp(meanlog + z * se_meanlog) / 1000,
     p10 = qs_ugkg["p10"] / 1000, median = qs_ugkg["p50"] / 1000,
     p90 = qs_ugkg["p90"] / 1000, p95 = qs_ugkg["p95"] / 1000, p99 = qs_ugkg["p99"] / 1000
   )
