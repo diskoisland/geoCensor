@@ -7,7 +7,8 @@
 build_metals_wide(chem_df, elements, lod_factor = 0.5, suffix = "_mgkg")
 }
 \arguments{
-\item{chem_df}{Chemistry long table (lab_id, species, unit, qvalue, qualifier).}
+\item{chem_df}{Chemistry long table (lab_id, species, unit, qvalue, and
+optional qualifier).}
 
 \item{elements}{Character vector of element symbols to include.}
 

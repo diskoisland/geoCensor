@@ -7,7 +7,8 @@
 build_ag_from_chem(chem_df, element = "Ag", to_ugkg = TRUE)
 }
 \arguments{
-\item{chem_df}{Data frame with at least columns: lab_id, species, qvalue, unit, qualifier.}
+\item{chem_df}{Data frame with at least columns: lab_id, species, qvalue, and
+unit. A qualifier column is optional and treated as missing when absent.}
 
 \item{element}{Element symbol to filter (e.g. "Ag").}
 
