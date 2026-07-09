@@ -6,7 +6,7 @@
 #'
 #' @export
 plot_ranked_bar <- function(mle_state_df,
-                            unit_label = "µg kg⁻¹",
+                            unit_label = "ug kg^-1",
                             title      = "Silver in U.S. soils by state") {
   ggplot2::ggplot(mle_state_df, ggplot2::aes(
     x = stats::reorder(.data$state, .data$geomean),
@@ -19,7 +19,7 @@ plot_ranked_bar <- function(mle_state_df,
     ) +
     ggplot2::coord_flip() +
     ggplot2::scale_y_log10(
-      name = paste0("Silver (", unit_label, ") — Geomean with 95% CI")
+      name = paste0("Silver (", unit_label, ") - Geomean with 95% CI")
     ) +
     ggplot2::labs(
       x = "State",
@@ -35,7 +35,7 @@ plot_ranked_bar <- function(mle_state_df,
 #'
 #' @export
 plot_us_map <- function(mle_state_df,
-                        unit_label = "µg kg⁻¹") {
+                        unit_label = "ug kg^-1") {
   df <- mle_state_df %>%
     dplyr::mutate(state = toupper(.data$state))
   
@@ -76,11 +76,11 @@ state_hotspot_map <- function(df,
     )
   
   if (nrow(df_state) == 0L) {
-    stop("state_hotspot_map: no points ≥ ", thr_min, " mg/kg in ", st_code)
+    stop("state_hotspot_map: no points >= ", thr_min, " mg/kg in ", st_code)
   }
   
   if (is.null(title)) {
-    title <- paste0(st_code, " ", value_col, " ≥ ", thr_min, " mg·kg⁻¹")
+    title <- paste0(st_code, " ", value_col, " >= ", thr_min, " mg kg^-1")
   }
   
   ggplot2::ggplot(df_state, ggplot2::aes(
@@ -88,12 +88,16 @@ state_hotspot_map <- function(df,
     y = .data$lat_wgs84,
     color = !!rlang::sym(value_col)
   )) +
-    maps::borders("state", regions = tolower(state.name[match(st_code, state.abb)]),
-                  colour = "grey60", fill = NA) +
+    ggplot2::borders(
+      "state",
+      regions = tolower(datasets::state.name[match(st_code, datasets::state.abb)]),
+      colour = "grey60",
+      fill = NA
+    ) +
     ggplot2::geom_point(alpha = 0.7, size = 2) +
     ggplot2::coord_quickmap() +
     ggplot2::scale_color_viridis_c(
-      name  = paste0("Ag (mg kg", "\u2212", "1)"),
+      name  = "Ag (mg kg^-1)",
       trans = "log10"
     ) +
     ggplot2::labs(

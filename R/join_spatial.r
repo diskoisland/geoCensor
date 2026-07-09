@@ -21,6 +21,12 @@ join_soil_main <- function(elem_df,
 }
 
 #' Alias for joining sediments (identical behavior)
+#'
+#' @param elem_df Data frame with at least lab_id.
+#' @param main_df Output of \code{read_clean_main()}.
+#' @param extra_cols Character vector of extra metadata cols to keep.
+#'
+#' @return Joined data frame.
 #' @export
 join_sed_main <- function(elem_df,
                           main_df,

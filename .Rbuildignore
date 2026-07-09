@@ -1,2 +1,7 @@
 ^geoCensor\.Rproj$
 ^\.Rproj\.user$
+^\.git$
+^\.gitignore$
+^\.\.Rcheck$
+^CITATION\.cff$
+^geoCensor_[0-9.]+\.tar\.gz$

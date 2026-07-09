@@ -4,7 +4,7 @@
 \alias{plot_us_map}
 \title{U.S. choropleth map of state-level geomean Ag}
 \usage{
-plot_us_map(mle_state_df, unit_label = "µg kg⁻¹")
+plot_us_map(mle_state_df, unit_label = "ug kg^-1")
 }
 \arguments{
 \item{mle_state_df}{Output of mle_by_state().}

@@ -2,15 +2,16 @@
 
 **Censoring-aware analysis of USGS National Geochemical Database (NGDB) data.**
 
-Censoring-aware analysis of USGS National Geochemical Database (NGDB) data.
 Geochemical datasets are often strongly left-censored because many samples are reported as being below the analytical detection limit. In the NGDB, the detection limit varies by methods and over time, making simple treatments of non-detects problematic. Removing non-detects or replacing them with values such as one-half the detection limit can bias estimates of central tendency.
 
-In this analysis, detection limits were handled explicitly rather than replaced with arbitrary values. The USGS NGDB qvalue and qualifier fields were first converted into concentration intervals, including open-ended intervals for non-detects and greater-than values. Geometric means and confidence intervals were estimated from maximum-likelihood lognormal models using interval-censored survival regression. Estimates were calculated for the full dataset and, where needed or separately by state. Substitution-based estimates were generated for comparison. Additional geoCensor tools were used for spatial joins, robust correlation analysis, robust PCA, and spatial mapping.
+In this analysis, detection limits were handled explicitly rather than replaced with arbitrary values. The USGS NGDB qvalue and qualifier fields were first converted into concentration intervals, including open-ended intervals for non-detects and greater-than values. Geometric means and confidence intervals were estimated from maximum-likelihood lognormal models using interval-censored survival regression. Estimates were calculated for the full dataset and, where needed, separately by state. Substitution-based estimates were generated for comparison. Additional geoCensor tools were used for spatial joins, robust correlation analysis, robust PCA, and spatial mapping.
 
-To generate the MLE: 
-1.  non-detects were coded as (0, LOD];
-2. greater-than values as  (ULOD, ∞); and 
-3. measured detections as exact concentrations. The lognormal model is fit with survival::survreg(..., dist = "lognormal"), and exp(meanlog) is used as the geometric mean.
+To generate the MLE:
+1. non-detects were coded as `(0, LOD]`;
+2. greater-than values were coded as `(ULOD, Inf)`; and
+3. measured detections were treated as exact concentrations.
+
+The lognormal model is fit with `survival::survreg(..., dist = "lognormal")`, and `exp(meanlog)` is used as the geometric mean.
 
 
 ## Installation
@@ -25,8 +26,9 @@ remotes::install_github("diskoisland/geoCensor")
 ```r
 library(geoCensor)
 
-# 1. Parse a chemistry table (lab_id, species, unit, qvalue, qualifier)
-#    into censoring fields for one element, converting ppm -> ug/kg
+# 1. Parse a chemistry table with lab_id, species, unit, qvalue,
+#    and qualifier columns into censoring fields for one element,
+#    converting supported units to ug/kg
 ag <- build_ag_from_csv("ngdbsoil/bestvalue.csv", element = "Ag", to_ugkg = TRUE)
 
 # 2. Attach sample metadata (state, coordinates) by lab_id
@@ -75,7 +77,8 @@ right-censored as `(ULOD, Inf)`, and detections as exact, fitting a lognormal by
 **Estimation**
 - `fit_cen_lognorm()` — left+right-censored lognormal MLE (geomean + CI)
 - `mle_by_state()` — censoring-aware lognormal geomeans by state
-- `add_substitution()` / `fit_lognorm_with_quants()` — substitution-based comparison
+- `add_substitution()` — LOD/2 and upper-limit substitution values
+- `fit_lognorm_with_quants()` — censoring-aware lognormal MLE with fitted quantiles
 - `robust_cor_table()` — bootstrap Spearman correlations of metals vs a target
 - `robust_corr_vs_Ag()` — bootstrap Spearman correlations of metals vs silver (`Ag_mgkg`); used for the element–Ag correlation tables
 - `run_pca_robust()` — robust log10 PCA on metals
@@ -86,13 +89,12 @@ right-censored as `(ULOD, Inf)`, and detections as exact, fitting a lognormal by
 
 ## Data
 
-The geoCensor package **does not include geochemical data**. Instead, it is designed to work with user-downloaded USGS National Geochemical Database exports, including the soil and stream-sediment “best value” and “chemistry” tables, together with the “main” sample-metadata table. These files are available through the USGS Mineral Resources Online Spatial Data portal
-(https://mrdata.usgs.gov/ngdb/).
+The geoCensor package **does not include geochemical data**. Instead, it is designed to work with user-downloaded USGS National Geochemical Database exports, including the soil and stream-sediment “best value” and “chemistry” tables, together with the “main” sample-metadata table. These files are available through the [USGS Mineral Resources Online Spatial Data portal](https://mrdata.usgs.gov/ngdb/).
 
 
 ## Citation
 
-If you use geoCensor, please cite it (see `CITATION.cff`):
+If you use geoCensor, please cite it. The repository includes citation metadata in `CITATION.cff`:
 
 > Edwards, R. (2026). *geoCensor: Censoring-Aware Analysis of USGS National
 > Geochemical Database Data* (version 0.1.0). https://github.com/diskoisland/geoCensor

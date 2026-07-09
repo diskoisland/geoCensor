@@ -1,8 +1,9 @@
 Package: geoCensor
 Title: Censoring-Aware Analysis of USGS National Geochemical Database Data
 Version: 0.1.0
-Authors@R:
-    person("Ross", "Edwards", email = "pedwards5@wisc.edu", role = c("aut", "cre", "cph"))
+Authors@R: person("Ross", "Edwards", email = "pedwards5@wisc.edu", role = c("aut", "cre"))
+Author: Ross Edwards [aut, cre]
+Maintainer: Ross Edwards <pedwards5@wisc.edu>
 Description: Tools to parse, model, and visualise left- and right-censored
     element concentrations from the U.S. Geological Survey National Geochemical
     Database (NGDB) and similar geochemical datasets. Functions parse USGS
@@ -26,10 +27,11 @@ Imports:
     tibble,
     ggplot2,
     usmap,
-    maps,
     magrittr,
     rlang,
     tidyr,
     stats
+Suggests:
+    maps
 URL: https://github.com/diskoisland/geoCensor
 BugReports: https://github.com/diskoisland/geoCensor/issues

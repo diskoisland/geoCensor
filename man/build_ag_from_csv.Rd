@@ -2,10 +2,20 @@
 % Please edit documentation in R/build_ag_from_csv.r
 \name{build_ag_from_csv}
 \alias{build_ag_from_csv}
-\title{Convenience wrapper: read a chemistry CSV and build Ag censoring fields}
+\title{Convenience wrapper: read a chemistry CSV and build element censoring fields}
 \usage{
 build_ag_from_csv(chem_csv, element = "Ag", to_ugkg = TRUE)
 }
+\arguments{
+\item{chem_csv}{Path to a chemistry CSV.}
+
+\item{element}{Element symbol to filter (default "Ag").}
+
+\item{to_ugkg}{Logical; if TRUE, convert supported units to ug/kg.}
+}
+\value{
+A data frame with one row per lab_id for the requested element.
+}
 \description{
-Convenience wrapper: read a chemistry CSV and build Ag censoring fields
+Convenience wrapper: read a chemistry CSV and build element censoring fields
 }

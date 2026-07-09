@@ -32,10 +32,12 @@ build_metals_wide <- function(chem_df,
     TRUE                                       ~ cen$detected_val
   )
 
+  unit_norm <- stringr::str_to_lower(stringr::str_trim(df$unit))
+
   # convert native unit -> mg/kg (ppm = mg/kg; pct = weight percent = 1e4 mg/kg)
   to_mgkg <- dplyr::case_when(
-    df$unit == "ppm" ~ 1,
-    df$unit == "pct" ~ 1e4,
+    unit_norm == "ppm" ~ 1,
+    unit_norm == "pct" ~ 1e4,
     TRUE             ~ NA_real_
   )
   val_mgkg <- val_native * to_mgkg
@@ -49,7 +51,7 @@ build_metals_wide <- function(chem_df,
       id_cols     = "lab_id",
       names_from  = "species",
       values_from = "val_mgkg",
-      values_fn   = list(val_mgkg = ~ mean(.x, na.rm = TRUE))
+      values_fn   = list(val_mgkg = ~ if (all(is.na(.x))) NA_real_ else mean(.x, na.rm = TRUE))
     )
 }
 
