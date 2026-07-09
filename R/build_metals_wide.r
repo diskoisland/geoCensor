@@ -8,7 +8,8 @@
 #' Concentrations are converted to mg/kg from the native reporting unit
 #' (`ppm` = mg/kg; `pct` = weight percent = 1e4 mg/kg); other units are set to `NA`.
 #'
-#' @param chem_df Chemistry long table (lab_id, species, unit, qvalue, qualifier).
+#' @param chem_df Chemistry long table (lab_id, species, unit, qvalue, and
+#'   optional qualifier).
 #' @param elements Character vector of element symbols to include.
 #' @param lod_factor Factor for left-censored substitution (default LOD/2).
 #' @param suffix Suffix for column names (default "_mgkg").
@@ -19,6 +20,10 @@ build_metals_wide <- function(chem_df,
                               elements,
                               lod_factor = 0.5,
                               suffix     = "_mgkg") {
+  if (!"qualifier" %in% names(chem_df)) {
+    chem_df <- dplyr::mutate(chem_df, qualifier = NA_character_)
+  }
+
   df <- chem_df %>%
     dplyr::filter(.data$species %in% elements)
 

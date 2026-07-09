@@ -1,6 +1,7 @@
 #' Build Ag (or other element) censoring fields from a chemistry data frame
 #'
-#' @param chem_df Data frame with at least columns: lab_id, species, qvalue, unit, qualifier.
+#' @param chem_df Data frame with at least columns: lab_id, species, qvalue, and
+#'   unit. A qualifier column is optional and treated as missing when absent.
 #' @param element Element symbol to filter (e.g. "Ag").
 #' @param to_ugkg Logical; if TRUE, convert ppm (mg/kg) → µg/kg.
 #'
@@ -10,6 +11,10 @@
 build_ag_from_chem <- function(chem_df,
                                element = "Ag",
                                to_ugkg = TRUE) {
+  if (!"qualifier" %in% names(chem_df)) {
+    chem_df <- dplyr::mutate(chem_df, qualifier = NA_character_)
+  }
+
   df <- chem_df %>%
     dplyr::filter(.data$species == element) %>%
     dplyr::mutate(
