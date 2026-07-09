@@ -16,7 +16,7 @@
 #' * right_cen, right_limit
 #' @export
 parse_usgs_q <- function(qvalue, qualifier = NULL) {
-  q_chr <- as.character(qvalue)
+  q_chr <- stringr::str_trim(as.character(qvalue))
   
   # suffix-based upper limits
   is_upper_suffix <- grepl("\\.1111$", q_chr)
@@ -31,6 +31,10 @@ parse_usgs_q <- function(qvalue, qualifier = NULL) {
   if (is.null(qualifier)) {
     qualifier <- rep(NA_character_, length(qvalue))
   }
+  if (length(qualifier) != length(qvalue)) {
+    stop("parse_usgs_q: qualifier must be NULL or the same length as qvalue")
+  }
+  qualifier <- stringr::str_to_upper(stringr::str_trim(as.character(qualifier)))
   
   qual_left  <- qualifier %in% c("L", "<")
   qual_right <- qualifier %in% c("G", ">")
@@ -43,7 +47,13 @@ parse_usgs_q <- function(qvalue, qualifier = NULL) {
   right_limit <- ifelse(is_upper_suffix, upper_num,
                         ifelse(qual_right & is.finite(q_num), q_num, NA_real_))
   
-  detected_val <- ifelse(left_cen | right_cen, NA_real_, q_num)
+  both_cen <- left_cen & right_cen
+  left_cen[both_cen] <- FALSE
+  right_cen[both_cen] <- FALSE
+  left_limit[both_cen] <- NA_real_
+  right_limit[both_cen] <- NA_real_
+  
+  detected_val <- ifelse(left_cen | right_cen | both_cen, NA_real_, q_num)
   
   tibble::tibble(
     detected_val = detected_val,

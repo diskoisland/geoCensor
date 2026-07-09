@@ -17,7 +17,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Ross Edwards \email{pedwards5@wisc.edu} [copyright holder]
+\strong{Maintainer}: Ross Edwards \email{pedwards5@wisc.edu}
 
 }
 \keyword{internal}

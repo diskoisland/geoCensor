@@ -9,7 +9,7 @@ norm_state <- function(x) {
   x <- stringr::str_trim(x)
   x[x == ""] <- NA_character_
   
-  state_map <- stats::setNames(state.abb, state.name)
+  state_map <- stats::setNames(datasets::state.abb, datasets::state.name)
   
   is_two <- !is.na(x) & nchar(x) == 2
   x[is_two] <- toupper(x[is_two])
@@ -21,6 +21,6 @@ norm_state <- function(x) {
     x[is_name] <- mapped
   }
   
-  x[!x %in% state.abb] <- NA_character_
+  x[!x %in% datasets::state.abb] <- NA_character_
   x
 }

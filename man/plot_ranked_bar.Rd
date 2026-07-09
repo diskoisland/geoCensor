@@ -6,7 +6,7 @@
 \usage{
 plot_ranked_bar(
   mle_state_df,
-  unit_label = "µg kg⁻¹",
+  unit_label = "ug kg^-1",
   title = "Silver in U.S. soils by state"
 )
 }

@@ -14,7 +14,8 @@ build_ag_from_chem <- function(chem_df,
     dplyr::filter(.data$species == element) %>%
     dplyr::mutate(
       qvalue_raw = as.character(.data$qvalue),
-      q_num      = readr::parse_number(.data$qvalue_raw)
+      q_num      = readr::parse_number(.data$qvalue_raw),
+      unit_norm  = stringr::str_to_lower(stringr::str_trim(.data$unit))
     )
   
   cen <- parse_usgs_q(df$qvalue_raw, df$qualifier)
@@ -24,10 +25,15 @@ build_ag_from_chem <- function(chem_df,
   if (to_ugkg) {
     out <- out %>%
       dplyr::mutate(
-        detected_val = dplyr::if_else(.data$unit == "ppm", .data$detected_val * 1000, .data$detected_val),
-        left_limit   = dplyr::if_else(.data$unit == "ppm", .data$left_limit   * 1000, .data$left_limit),
-        right_limit  = dplyr::if_else(.data$unit == "ppm", .data$right_limit  * 1000, .data$right_limit),
-        value_unit   = dplyr::if_else(.data$unit == "ppm", "ug/kg", .data$unit)
+        unit_factor  = dplyr::case_when(
+          .data$unit_norm == "ppm" ~ 1000,
+          .data$unit_norm == "pct" ~ 1e7,
+          TRUE                     ~ NA_real_
+        ),
+        detected_val = .data$detected_val * .data$unit_factor,
+        left_limit   = .data$left_limit * .data$unit_factor,
+        right_limit  = .data$right_limit * .data$unit_factor,
+        value_unit   = dplyr::if_else(is.finite(.data$unit_factor), "ug/kg", .data$unit)
       )
   } else {
     out <- out %>% dplyr::mutate(value_unit = .data$unit)

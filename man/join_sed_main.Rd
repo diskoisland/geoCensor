@@ -11,6 +11,16 @@ join_sed_main(
     "depth_unit")
 )
 }
+\arguments{
+\item{elem_df}{Data frame with at least lab_id.}
+
+\item{main_df}{Output of \code{read_clean_main()}.}
+
+\item{extra_cols}{Character vector of extra metadata cols to keep.}
+}
+\value{
+Joined data frame.
+}
 \description{
 Alias for joining sediments (identical behavior)
 }

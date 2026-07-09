@@ -1,4 +1,10 @@
-#' Convenience wrapper: read a chemistry CSV and build Ag censoring fields
+#' Convenience wrapper: read a chemistry CSV and build element censoring fields
+#'
+#' @param chem_csv Path to a chemistry CSV.
+#' @param element Element symbol to filter (default "Ag").
+#' @param to_ugkg Logical; if TRUE, convert supported units to ug/kg.
+#'
+#' @return A data frame with one row per lab_id for the requested element.
 #' @export
 build_ag_from_csv <- function(chem_csv, element = "Ag", to_ugkg = TRUE) {
   chem_df <- readr::read_csv(chem_csv, show_col_types = FALSE)
