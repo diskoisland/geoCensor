@@ -47,6 +47,15 @@ plot_ranked_bar(gm_by_state)
 plot_us_map(gm_by_state)
 ```
 
+## Example scripts
+
+An installed example script reproduces the soil/sediment Ag state table and adds
+pooled estimates for the 10 seed states and for all U.S. samples:
+
+```r
+system.file("examples", "ag_seed_state_mle.R", package = "geoCensor")
+```
+
 ## Detection-limit (censoring) conventions
 
 `parse_usgs_q()` interprets the USGS NGDB encoding:
