@@ -7,7 +7,10 @@ Geochemical datasets are often strongly left-censored because many samples are r
 
 In this analysis, detection limits were handled explicitly rather than replaced with arbitrary values. The USGS NGDB qvalue and qualifier fields were first converted into concentration intervals, including open-ended intervals for non-detects and greater-than values. Geometric means and confidence intervals were estimated from maximum-likelihood lognormal models using interval-censored survival regression. Estimates were calculated for the full dataset and, where needed or separately by state. Substitution-based estimates were generated for comparison. Additional geoCensor tools were used for spatial joins, robust correlation analysis, robust PCA, and spatial mapping.
 
-For the MLE calculation, the reported values were passed to the model using the USGS qualifiers to determine its form. Non-detects were entered as values between zero and the reported detection limit. Greater-than values were entered as censored above the reported upper limit. Unqualified detections were entered as measured concentrations. The lognormal model was fit using  survival::survreg(..., dist = "lognormal"), and the geometric mean was taken as exp(meanlog).
+To generate the MLE: 
+1.  non-detects were coded as (0, LOD];
+2. greater-than values as  (ULOD, ∞); and 
+3. measured detections as exact concentrations. The lognormal model is fit with survival::survreg(..., dist = "lognormal"), and exp(meanlog) is used as the geometric mean.
 
 
 ## Installation
