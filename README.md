@@ -76,7 +76,8 @@ right-censored as `(ULOD, Inf)`, and detections as exact, fitting a lognormal by
 - `fit_cen_lognorm()` — left+right-censored lognormal MLE (geomean + CI)
 - `mle_by_state()` — censoring-aware lognormal geomeans by state
 - `add_substitution()` / `fit_lognorm_with_quants()` — substitution-based comparison
-- `robust_cor_table()` — bootstrap Spearman correlations
+- `robust_cor_table()` — bootstrap Spearman correlations of metals vs a target
+- `robust_corr_vs_Ag()` — bootstrap Spearman correlations of metals vs silver (`Ag_mgkg`); used for the element–Ag correlation tables
 - `run_pca_robust()` — robust log10 PCA on metals
 
 **Visualisation**
