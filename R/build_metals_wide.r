@@ -77,7 +77,7 @@ build_ag_metals_state <- function(chem_df,
   
   out <- wide %>%
     dplyr::left_join(
-      main_df %>% dplyr::select(.data$lab_id, .data$state, .data$lat_wgs84, .data$long_wgs84),
+      main_df %>% dplyr::select(dplyr::any_of(c("lab_id", "state", "lat_wgs84", "long_wgs84"))),
       by = "lab_id"
     )
   

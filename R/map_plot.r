@@ -28,24 +28,40 @@ plot_ranked_bar <- function(mle_state_df,
     ggplot2::theme_minimal(base_size = 11)
 }
 
-#' U.S. choropleth map of state-level geomean Ag
+#' U.S. choropleth map of state-level geomeans
 #'
 #' @param mle_state_df Output of mle_by_state().
 #' @param unit_label Label for legend.
+#' @param element_label Element label for legend and default title.
+#' @param medium_label Optional medium label for default title (e.g. "soils" or
+#'   "sediments").
+#' @param title Optional plot title. If NULL, a title is built from
+#'   `element_label` and `medium_label`.
 #'
 #' @export
 plot_us_map <- function(mle_state_df,
-                        unit_label = "ug kg^-1") {
+                        unit_label = "ug kg^-1",
+                        element_label = "Ag",
+                        medium_label = NULL,
+                        title = NULL) {
   df <- mle_state_df %>%
     dplyr::mutate(state = toupper(.data$state))
+
+  if (is.null(title)) {
+    title <- if (is.null(medium_label)) {
+      paste0("State-level ", element_label, " geometric mean (MLE)")
+    } else {
+      paste0("State-level ", element_label, " geometric mean in U.S. ", medium_label, " (MLE)")
+    }
+  }
   
   usmap::plot_usmap(data = df, values = "geomean", color = "white") +
     ggplot2::scale_fill_viridis_c(
-      name = paste0("Ag (", unit_label, ")"),
+      name = paste0(element_label, " (", unit_label, ")"),
       trans = "log10"
     ) +
     ggplot2::labs(
-      title = "Geometric mean silver in U.S. soils (state-level MLE)"
+      title = title
     ) +
     ggplot2::theme_minimal()
 }
@@ -88,7 +104,7 @@ state_hotspot_map <- function(df,
     y = .data$lat_wgs84,
     color = !!rlang::sym(value_col)
   )) +
-    ggplot2::borders(
+    ggplot2::annotation_borders(
       "state",
       regions = tolower(datasets::state.name[match(st_code, datasets::state.abb)]),
       colour = "grey60",

@@ -37,6 +37,14 @@ read_clean_main <- function(main_csv) {
     previous_job_id     = readr::col_character(),
     previous_lab_id     = readr::col_character()
   )
+
+  file_cols <- names(readr::read_csv(
+    main_csv,
+    n_max = 0,
+    na = c("", "NA", "NaN"),
+    show_col_types = FALSE
+  ))
+  ct <- do.call(readr::cols, ct$cols[intersect(names(ct$cols), file_cols)])
   
   main <- readr::read_csv(
     main_csv,

@@ -18,6 +18,19 @@ dir.create("output", showWarnings = FALSE, recursive = TRUE)
 
 country_codes <- c("US", "USA", "UNITED STATES", "U.S.")
 seed_states <- c("CA", "CO", "ID", "KS", "ND", "NM", "NV", "TX", "UT", "WY")
+min_uncensored <- 5
+
+apply_min_uncensored <- function(x, min_uncensored) {
+  x <- x %>%
+    mutate(n_uncensored = n_total - n_left - n_right)
+
+  too_few <- is.na(x$n_uncensored) | x$n_uncensored < min_uncensored
+  x$geomean[too_few] <- NA_real_
+  x$ci_low[too_few] <- NA_real_
+  x$ci_high[too_few] <- NA_real_
+  x$method[too_few] <- paste0(x$method[too_few], "_min_uncensored_not_met")
+  x
+}
 
 run_medium <- function(chem_csv, main_csv, label, outfile, join_fun) {
   ag <- build_ag_from_csv(
@@ -40,19 +53,22 @@ run_medium <- function(chem_csv, main_csv, label, outfile, join_fun) {
   state_res <- mle_by_state(
     ag_main,
     country_codes = country_codes
-  )
+  ) %>%
+    apply_min_uncensored(min_uncensored)
 
   write_csv(state_res, outfile)
 
-  national <- fit_cen_lognorm(us_data)
+  national <- fit_cen_lognorm(us_data) %>%
+    apply_min_uncensored(min_uncensored)
 
   cat(sprintf(
-    "[%s] %d states, national pooled GM = %.1f ug/kg (%.4f mg/kg), n=%d\n",
+    "[%s] %d states, national pooled GM = %.1f ug/kg (%.4f mg/kg), n=%d, min uncensored=%d\n",
     label,
     sum(!is.na(state_res$geomean)),
     national$geomean,
     national$geomean / 1000,
-    national$n_total
+    national$n_total,
+    min_uncensored
   ))
 
   list(
@@ -124,10 +140,12 @@ pooled_seed_states <- bind_cols(
   soil_run$us_data %>%
     filter(state %in% seed_states) %>%
     fit_cen_lognorm() %>%
+    apply_min_uncensored(min_uncensored) %>%
     pooled_meta("soil"),
   sed_run$us_data %>%
     filter(state %in% seed_states) %>%
     fit_cen_lognorm() %>%
+    apply_min_uncensored(min_uncensored) %>%
     pooled_meta("sed")
 )
 

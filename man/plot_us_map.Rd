@@ -2,15 +2,29 @@
 % Please edit documentation in R/map_plot.r
 \name{plot_us_map}
 \alias{plot_us_map}
-\title{U.S. choropleth map of state-level geomean Ag}
+\title{U.S. choropleth map of state-level geomeans}
 \usage{
-plot_us_map(mle_state_df, unit_label = "ug kg^-1")
+plot_us_map(
+  mle_state_df,
+  unit_label = "ug kg^-1",
+  element_label = "Ag",
+  medium_label = NULL,
+  title = NULL
+)
 }
 \arguments{
 \item{mle_state_df}{Output of mle_by_state().}
 
 \item{unit_label}{Label for legend.}
+
+\item{element_label}{Element label for legend and default title.}
+
+\item{medium_label}{Optional medium label for default title (e.g. "soils" or
+"sediments").}
+
+\item{title}{Optional plot title. If NULL, a title is built from
+\code{element_label} and \code{medium_label}.}
 }
 \description{
-U.S. choropleth map of state-level geomean Ag
+U.S. choropleth map of state-level geomeans
 }
