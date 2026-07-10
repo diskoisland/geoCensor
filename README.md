@@ -39,10 +39,14 @@ ag_main <- join_soil_main(ag, main)
 gm_by_state <- mle_by_state(ag_main)
 head(gm_by_state)        # state, n_total, n_left, n_right, geomean, ci_low, ci_high
 
-# 4. National pooled estimate
+# 4. Spatial coverage diagnostics for the same state metrics
+coverage_by_state <- spatial_coverage_by_state(ag_main)
+gm_by_state <- dplyr::left_join(gm_by_state, coverage_by_state, by = "state")
+
+# 5. National pooled estimate
 fit_cen_lognorm(ag_main)
 
-# 5. Map / rank
+# 6. Map / rank
 plot_ranked_bar(gm_by_state)
 plot_us_map(gm_by_state)
 ```
@@ -55,6 +59,8 @@ maps from NGDB `bestvalue.csv` files:
 ```r
 system.file("examples", "build_ag_mle_state_df.R", package = "geoCensor")
 system.file("examples", "ag_seed_state_mle.R", package = "geoCensor")
+system.file("examples", "test_ag_spatial_coverage_step_by_step.R", package = "geoCensor")
+system.file("examples", "ag_state_mle_spatial_coverage.R", package = "geoCensor")
 system.file("examples", "ag_hotspot_map.R", package = "geoCensor")
 ```
 
@@ -89,6 +95,7 @@ right-censored as `(ULOD, Inf)`, and detections as exact, fitting a lognormal by
 - `fit_cen_lognorm()` — left+right-censored lognormal MLE (geomean + CI)
 - `mle_by_state()` — censoring-aware lognormal geomeans by state
 - `compare_censored_distributions()` — AIC comparison of censored parametric distributions
+- `spatial_coverage_by_state()` — coordinate counts and occupied grid cells by state
 - `add_substitution()` — LOD/2 and upper-limit substitution values
 - `fit_lognorm_with_quants()` — censoring-aware lognormal MLE with fitted quantiles
 - `robust_cor_table()` — bootstrap Spearman correlations of metals vs a target
