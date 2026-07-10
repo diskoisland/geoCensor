@@ -46,7 +46,10 @@ gm_by_state <- dplyr::left_join(gm_by_state, coverage_by_state, by = "state")
 # 5. National pooled estimate
 fit_cen_lognorm(ag_main)
 
-# 6. Map / rank
+# 6. Inspect the fitted lognormal model
+plot_lognormal_fit(ag_main)
+
+# 7. Map / rank
 plot_ranked_bar(gm_by_state)
 plot_us_map(gm_by_state)
 ```
@@ -61,6 +64,8 @@ system.file("examples", "build_ag_mle_state_df.R", package = "geoCensor")
 system.file("examples", "ag_seed_state_mle.R", package = "geoCensor")
 system.file("examples", "test_ag_spatial_coverage_step_by_step.R", package = "geoCensor")
 system.file("examples", "ag_state_mle_spatial_coverage.R", package = "geoCensor")
+system.file("examples", "test_ag_lognormal_fit_plot_step_by_step.R", package = "geoCensor")
+system.file("examples", "ag_lognormal_fit_plot.R", package = "geoCensor")
 system.file("examples", "ag_hotspot_map.R", package = "geoCensor")
 ```
 
@@ -103,6 +108,7 @@ right-censored as `(ULOD, Inf)`, and detections as exact, fitting a lognormal by
 - `run_pca_robust()` — robust log10 PCA on metals
 
 **Visualisation**
+- `plot_lognormal_fit()` — fitted censored lognormal density with geomean and CI
 - `plot_ranked_bar()` — ranked barplot of state geomeans (log scale)
 - `plot_us_map()` / `state_hotspot_map()` — choropleth / hotspot maps
 
