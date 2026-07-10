@@ -49,11 +49,13 @@ plot_us_map(gm_by_state)
 
 ## Example scripts
 
-An installed example script reproduces the soil/sediment Ag state table and adds
-pooled estimates for the 10 seed states and for all U.S. samples:
+Installed example scripts show how to build Ag MLE state tables and hotspot
+maps from NGDB `bestvalue.csv` files:
 
 ```r
+system.file("examples", "build_ag_mle_state_df.R", package = "geoCensor")
 system.file("examples", "ag_seed_state_mle.R", package = "geoCensor")
+system.file("examples", "ag_hotspot_map.R", package = "geoCensor")
 ```
 
 ## Detection-limit (censoring) conventions
