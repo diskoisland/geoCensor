@@ -2,9 +2,9 @@
 
 **Censoring-aware analysis of USGS National Geochemical Database (NGDB) data.**
 
-Geochemical datasets are often strongly left-censored because many samples are reported as being below the analytical detection limit. In the NGDB, the detection limit varies by methods and over time, making simple treatments of non-detects problematic. Removing non-detects or replacing them with values such as one-half the detection limit can bias estimates of central tendency.
+I wrote geoCensor for working with USGS National Geochemical Database tables where a lot of the useful information is tucked inside detection limits, qualifiers, and non-detects. Those details matter: in the NGDB, detection limits vary by method and over time, so dropping non-detects or replacing everything with LOD/2 can move the center of the data in ways that are hard to see later.
 
-In this analysis, detection limits were handled explicitly rather than replaced with arbitrary values. The USGS NGDB qvalue and qualifier fields were first converted into concentration intervals, including open-ended intervals for non-detects and greater-than values. Geometric means and confidence intervals were estimated from maximum-likelihood lognormal models using interval-censored survival regression. Estimates were calculated for the full dataset and, where needed, separately by state. Substitution-based estimates were generated for comparison. Additional geoCensor tools were used for spatial joins, robust correlation analysis, robust PCA, and spatial mapping.
+The package turns USGS `qvalue` and `qualifier` fields into concentration intervals, including open-ended intervals for non-detects and greater-than values. It then estimates geometric means and confidence intervals with maximum-likelihood lognormal models using interval-censored survival regression. It also includes LOD/2-style substitution summaries for comparison, distribution diagnostics, spatial joins, robust correlation analysis, robust PCA, and mapping helpers.
 
 To generate the MLE:
 1. non-detects were coded as `(0, LOD]`;
@@ -88,6 +88,7 @@ right-censored as `(ULOD, Inf)`, and detections as exact, fitting a lognormal by
 **Estimation**
 - `fit_cen_lognorm()` — left+right-censored lognormal MLE (geomean + CI)
 - `mle_by_state()` — censoring-aware lognormal geomeans by state
+- `compare_censored_distributions()` — AIC comparison of censored parametric distributions
 - `add_substitution()` — LOD/2 and upper-limit substitution values
 - `fit_lognorm_with_quants()` — censoring-aware lognormal MLE with fitted quantiles
 - `robust_cor_table()` — bootstrap Spearman correlations of metals vs a target
