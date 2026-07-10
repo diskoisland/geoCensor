@@ -5,3 +5,11 @@
 ^\.\.Rcheck$
 ^CITATION\.cff$
 ^geoCensor_[0-9.]+\.tar\.gz$
+^geoCensor\.Rcheck$
+^output$
+^render_condensed_profiles$
+^render_freshwater_ag$
+^.*\.docx$
+^~\$
+^.*\.py$
+^state_agi_vs_operational_hours\.svg$
