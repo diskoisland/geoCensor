@@ -14,6 +14,9 @@
 #' (best-ranked) analysis and that value rounds to the reported qvalue, its
 #' censoring information is recovered. `qvalue_raw` retains the original value;
 #' `censoring_source` records whether the limit came from summary or qvalue.
+#' [flag_analytical_methods()] adds separate method-review fields. Method
+#' concerns do not change `validation_status`, censoring fields or values;
+#' semiquantitative reporting-class bounds are not inferred.
 #' @export
 build_ag_from_chem <- function(chem_df,
                                element = "Ag",
@@ -63,7 +66,7 @@ build_ag_from_chem <- function(chem_df,
     out <- out %>% dplyr::mutate(value_unit = .data$unit)
   }
   
-  out
+  flag_analytical_methods(out)
 }
 
 .concentration_factor_ugkg <- function(unit) {

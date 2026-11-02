@@ -2,7 +2,9 @@
 
 **Censoring-aware analysis of USGS National Geochemical Database (NGDB) data.**
 
-Source version **1.1.0**. See [NEWS.md](NEWS.md) for changes and compatibility notes.
+Development source version **1.1.0.9003**. The published stable version is
+[v1.1.0](https://github.com/diskoisland/geoCensor/releases/tag/v1.1.0). See
+[NEWS.md](NEWS.md) for changes and compatibility notes.
 
 I wrote geoCensor for working with USGS National Geochemical Database tables where a lot of the useful information is tucked inside detection limits, qualifiers, and non-detects. Those details matter: in the NGDB, detection limits vary by method and over time, so dropping non-detects or replacing everything with LOD/2 can move the center of the data in ways that are hard to see later.
 
@@ -119,12 +121,130 @@ repeated sample/element pairs instead of averaging them; choose the appropriate
 result explicitly before widening. Their `validation_summary` attribute records
 usable and excluded input counts.
 
+## Review analytical methods
+
+```r
+reviewed <- flag_analytical_methods(chemistry)
+reviewed[c("amethod", "method_review_status", "review_semiquantitative")]
+```
+
+The USGS codes `ES_SQ` and `ES_H2O_P` are documented semiquantitative methods.
+They receive a review flag and documentation source. Missing/blank methods,
+`UNKNOWN`, and other codes remain unresolved; an NA flag does not certify a
+quantitative measurement. Original values, method labels, censoring fields and
+validation statuses are preserved. The helper supplies no numeric reporting-class
+bounds, detection limits or laboratory/era assumptions.
+
+`build_element()` adds these fields automatically. `analyze_elements()` adds
+method counts/status to estimates and a `methods` table with input and unweighted
+fit-subset counts. Declustering summaries use their own chemistry/coordinate
+subset, so a flagged record without usable coordinates is not counted as used
+in a spatial fit. Installed single/all-element commands export `methods.csv`.
+Direct `fit_cen_lognorm()` and `fit_lognorm_with_quants()` calls, and
+`mle_by_state()`, also retain method counts/status. Custom censoring columns
+and zero-weight exclusions use the same eligible subset as their fit.
+“Used” means eligible input even when the fit is insufficient or fails.
+Plots include method-review counts in saved captions and reject numerical
+fit failures before drawing a fitted curve.
+Distribution comparisons retain method counts/status for every candidate,
+including failed or insufficient fits. Empirical CDF bounds append the same
+review fields to `support` using their own valid, positive-weight subset.
+CDF plots retain these cautions; older saved results explicitly report missing
+method-review information rather than reconstructing it.
+
+Count-based review remains separate: `n_exact` counts uncensored input coding,
+not verified measurement precision. A result can clear the count thresholds
+and still require method review. No estimates are filtered or changed by these
+annotations, and spatial confidence limits remain experimental.
+
+### Compare recorded methods before pooling
+
+```r
+method_check <- analyze_elements(
+  chemistry, main_df = metadata, group_cols = "state",
+  stratify_methods = TRUE
+)
+method_check$method_estimates[c("element", "state", "method_code", "n_input",
+  "n_total", "geomean", "method_information", "review_status")]
+```
+
+This optional table separates unweighted summaries by normalized method code
+within each element/domain. Matching trims spaces and ignores case; original
+labels stay intact. Blank/absent methods remain an unresolved NA bucket, with
+`UNKNOWN` separate. A missing-method bucket does not establish a shared
+procedure. Unusable inputs, insufficient groups and failed fits remain explicit.
+The six existing result tables and pooled estimates are unchanged. Method
+summaries use chemistry eligibility, including records without usable coordinates.
+
+Differences between method strata can also reflect location, geology, sample
+support, era or preferential sampling. They are descriptive sensitivity results,
+not a calibration or an estimate of analytical bias. Ordinary confidence limits
+still assume independent observations and a suitable lognormal model.
+
+Both installed commands accept `--stratify-methods` and then export
+`method_estimates.csv` as well as the usual outputs. This feature requires
+development version 1.1.0.9001 or newer.
+Choose a new or empty output directory for each command run; existing results
+are preserved so optional tables and plots cannot be confused with a later run.
+
+### Check whether method groups cover the same area
+
+For one selected element, medium and domain, use valid chemistry with projected
+coordinates to inspect overlap at several cell widths:
+
+```r
+overlap <- method_spatial_overlap(
+  analysis_data, cell_sizes = c(5000, 10000, 20000),
+  x_col = "x_m", y_col = "y_m", n_offsets = 2
+)
+overlap$support
+overlap$methods
+overlap$pairs
+```
+
+All methods share the same grid at each placement. Pair summaries report shared
+cells, their union and the shared/union fraction (Jaccard), with minima/means/
+maxima across placements. These ranges describe grid sensitivity, not confidence
+limits. Missing methods remain explicit buckets outside named-method pairs.
+When a code lacks usable spatial data, comparisons stay NA rather than becoming
+zero overlap. Genuine zero overlap is reported only when both codes have data.
+
+Cells shared by two method labels do not establish paired samples, comparable
+physical support or analytical agreement. Exact coordinate pairs may be rounded
+or reused and are not independent-site counts. This descriptive audit fits no
+concentration model and does not resolve preferential sampling or unsampled areas.
+
+To run the same audit for every selected element and domain:
+
+```r
+geographic <- analyze_elements(
+  chemistry, main_df = metadata, group_cols = "state",
+  cell_sizes = c(5000, 10000, 20000), x_col = "x_m", y_col = "y_m",
+  n_offsets = 2, audit_method_overlap = TRUE
+)
+geographic$method_overlap_support
+geographic$method_coverage
+geographic$method_overlap
+```
+
+This appends three labelled audit tables and leaves existing outputs unchanged.
+It is independent of `stratify_methods = TRUE`; both options can be combined.
+The audit uses the supplied `n_offsets` (batch default 10, or 100 placements),
+whereas the standalone audit defaults to 2. Review cell sizes and placement counts
+for the intended spatial domain. The batch audit uses sorted unique cell sizes.
+
+The all-element command accepts `--method-overlap` when metadata, projected
+coordinate columns and cell sizes are supplied. It exports
+`method_overlap_support.csv`, `method_coverage.csv` and `method_overlap.csv`, plus
+the corresponding RDS components. This command now requires version 1.1.0.9003
+or newer. Missing method/coordinate information stays explicit in those tables.
+
 ## Audit sampling support before pooling
 
 ```r
 support <- sampling_support_audit(
   metadata, group_cols = "state",
-  support_cols = c("depth", "horizon", "mesh_size"),
+  support_cols = c("depth", "sample_zone", "horizon", "mesh_size"),
   x_col = "long_wgs84", y_col = "lat_wgs84"
 )
 support$fields
@@ -132,7 +252,9 @@ support$locations
 ```
 
 Use fields actually available in your dataset; `support_cols = NULL` selects
-available standard metadata fields. Sediment metadata may omit horizon. This
+available standard metadata fields. In USGS soil exports `sample_zone` records
+the horizon zone; `horizon` records how well defined it is. Sediment metadata
+may omit both. This
 is a descriptive audit: different recorded labels and missing information are
 reported separately. Exact coordinate reuse may reflect rounding or different
 sample supports. Matching or missing labels do not establish comparability;
@@ -146,6 +268,7 @@ Analyze every nonblank species in an NGDB chemistry or best-value table:
 results <- analyze_elements(chemistry)
 results$estimates
 results$validation
+results$methods
 results$distributions
 ```
 
@@ -262,8 +385,10 @@ no censored value. Bounds can be calculated even when a concentration fit is
 unavailable. Empty usable subsets have missing bounds.
 
 These describe the supplied observations; they are not confidence bands for a
-population. Coincident bounds in fully observed data do not remove sampling or
-spatial uncertainty. Inspect distributions within sensible domains and compare
+population. Coincident bounds in uncensored input do not establish measurement
+precision or remove sampling and spatial uncertainty. These bounds condition on
+the reported censoring codes; semiquantitative class ranges are not inferred.
+Inspect distributions within sensible domains and compare
 the fitted/nonparametric CDF view from
 `plot_lognormal_fit(..., show_nonparametric = TRUE)` where fitting is appropriate.
 A model CDF outside an empirical bound is not an automatic rejection rule.

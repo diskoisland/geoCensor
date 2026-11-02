@@ -48,6 +48,8 @@ add_substitution <- function(df) {
 #'   Method is `MLE` on success, `insufficient_data` for insufficient usable
 #'   data, or `failed_fit` for a numerical failure. Unavailable fitted values
 #'   remain NA, including every requested quantile.
+#'   Analytical-method review counts and status are appended after the existing
+#'   summary/quantile columns; see [fit_cen_lognorm()] and [flag_analytical_methods()].
 #' @export
 fit_lognorm_with_quants <- function(df, probs = c(0.1, 0.5, 0.9, 0.95, 0.99)) {
   if (!is.numeric(probs) || !length(probs) || any(!is.finite(probs)) ||
@@ -87,5 +89,5 @@ fit_lognorm_with_quants <- function(df, probs = c(0.1, 0.5, 0.9, 0.95, 0.99)) {
     out <- out[, c("method", "n_total", "n_left", "n_right", "meanlog", "sdlog",
       "geomean", "ci_low", "ci_high", "p10", "median", "p90", "p95", "p99")]
   }
-  out
+  dplyr::bind_cols(out, .summarize_analytical_methods(df, intervals = intervals, include_methods = FALSE)$summary)
 }

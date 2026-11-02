@@ -83,3 +83,74 @@ test_that("bounds validate arguments and support renamed columns", {
   expect_equal(p$labels$title, "Defined domain")
   expect_match(p$labels$caption, "sampling and spatial")
 })
+
+test_that("CDF support retains method counts on its positive-weight valid subset", {
+  x <- bounds_sample()
+  x$amethod <- c(" ES_SQ ", "es_h2o_p", "UNKNOWN")
+  x <- dplyr::bind_rows(x, tibble::tibble(detected_val = 0, left_cen = FALSE,
+    left_limit = NA_real_, right_cen = FALSE, right_limit = NA_real_, w = 1,
+    amethod = "ES_SQ"))
+  out <- censored_cdf_bounds(x, 1:5, "w")
+  expect_equal(out$support$n_semiquantitative_input, 3)
+  expect_equal(out$support$n_semiquantitative_used, 2)
+  expect_equal(out$support$n_method_unspecified_used, 1)
+  expect_equal(out$support$n_method_not_reviewed_used, 0)
+  expect_true(out$support$review_semiquantitative)
+  expect_equal(out$support$method_review_status, "review_semiquantitative")
+  expect_equal(out$cdf, censored_cdf_bounds(bounds_sample(), 1:5, "w")$cdf)
+  x$w[1] <- 0; x$left_limit[2] <- NA_real_
+  restricted <- censored_cdf_bounds(x, 1:5, "w")
+  expect_equal(restricted$support$n_total, 1)
+  expect_equal(restricted$support$n_semiquantitative_input, 3)
+  expect_equal(restricted$support$n_semiquantitative_used, 0)
+  expect_true(is.na(restricted$support$review_semiquantitative))
+  expect_equal(restricted$support$method_review_status, "method_information_unresolved")
+  names(x)[1:5] <- c("v", "lf", "ll", "rf", "rl")
+  renamed <- censored_cdf_bounds(x, 1:5, "w", "v", "lf", "ll", "rf", "rl")
+  expect_equal(renamed, restricted)
+})
+
+test_that("coincident CDF bounds do not clear semiquantitative measurement concerns", {
+  x <- bounds_sample()
+  x$detected_val <- c(3, 3, 5); x$left_cen[] <- x$right_cen[] <- FALSE
+  x$amethod <- "ES_SQ"
+  out <- censored_cdf_bounds(x, 1:5)
+  expect_true(all(out$cdf$censoring_gap == 0))
+  expect_true(out$support$review_semiquantitative)
+  expect_equal(out$support$n_semiquantitative_used, 3)
+  p <- plot_censored_cdf_bounds(out)
+  expect_match(p$labels$caption, "Known semiquantitative codes: 3/3 usable records", fixed = TRUE)
+  expect_match(p$labels$caption, "measurement precision unresolved", fixed = TRUE)
+  expect_silent(ggplot2::ggplot_build(p))
+})
+
+test_that("CDF method information remains unresolved for missing and empty data", {
+  x <- bounds_sample()
+  absent <- censored_cdf_bounds(x, 1:5)
+  expect_equal(absent$support$n_method_unspecified_used, 3)
+  expect_true(is.na(absent$support$review_semiquantitative))
+  expect_equal(absent$support$method_review_status, "method_information_unresolved")
+  x$amethod <- "ES_SQ"; x$w <- 0
+  empty <- censored_cdf_bounds(x, 1:5, "w")
+  expect_equal(empty$support$n_semiquantitative_input, 3)
+  expect_equal(empty$support$n_semiquantitative_used, 0)
+  expect_equal(empty$support$method_review_status, "no_usable_data")
+  expect_true(is.na(empty$support$review_semiquantitative))
+  expect_true(all(is.na(empty$cdf$cdf_lower)))
+  expect_equal(censored_cdf_bounds(x[FALSE, ], 1:5)$support$method_review_status, "no_usable_data")
+})
+
+test_that("older saved CDF results plot without invented method counts", {
+  out <- censored_cdf_bounds(bounds_sample(), 1:5)
+  method_fields <- c("n_semiquantitative_input", "n_semiquantitative_used",
+    "n_method_unspecified_used", "n_method_not_reviewed_used",
+    "review_semiquantitative", "method_review_status")
+  legacy <- out
+  legacy$support <- legacy$support[, setdiff(names(legacy$support), method_fields)]
+  legacy <- unserialize(serialize(legacy, NULL))
+  p <- plot_censored_cdf_bounds(legacy)
+  expect_s3_class(p, "ggplot")
+  expect_match(p$labels$caption, "Analytical-method review unavailable in this saved result", fixed = TRUE)
+  expect_false(grepl("Known semiquantitative codes:", p$labels$caption, fixed = TRUE))
+  expect_silent(ggplot2::ggplot_build(p))
+})

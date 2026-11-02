@@ -21,6 +21,8 @@ Concentration summaries are in mg/kg. The median is always included.
 Method is \code{MLE} on success, \code{insufficient_data} for insufficient usable
 data, or \code{failed_fit} for a numerical failure. Unavailable fitted values
 remain NA, including every requested quantile.
+Analytical-method review counts and status are appended after the existing
+summary/quantile columns; see \code{\link[=fit_cen_lognorm]{fit_cen_lognorm()}} and \code{\link[=flag_analytical_methods]{flag_analytical_methods()}}.
 }
 \description{
 Fits an interval-censored lognormal and reports geometric means, model-based

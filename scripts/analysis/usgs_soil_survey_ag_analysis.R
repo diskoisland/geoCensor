@@ -188,6 +188,8 @@ usable <- ag_intervals$left_cen | ag_intervals$right_cen |
 ag_intervals <- ag_intervals[usable, , drop = FALSE]
 
 # Reuse the project's published NGDB censoring-aware implementation.
+source(file.path(repo_root, "R", "distribution_diagnostics.R"), local = TRUE)
+source(file.path(repo_root, "R", "flag_analytical_methods.R"), local = TRUE)
 source(file.path(repo_root, "R", "censoring.R"), local = TRUE)
 mle <- fit_cen_lognorm(ag_intervals)
 

@@ -19,6 +19,9 @@
 #'   cdf_lower, cdf_upper, censoring_gap) and support (usable/excluded counts,
 #'   censoring-weight shares and Kish weight effective n). Empty usable subsets
 #'   have missing CDF values and weight fractions.
+#'   Analytical-method review counts/status are appended to support; see
+#'   [flag_analytical_methods()]. Used counts exclude invalid and zero-weight
+#'   rows and describe records, not their share of weight.
 #' @details
 #' At a threshold t, exact observations at or below t are counted in both
 #' bounds. Left-censored observations count in the lower bound when their limit
@@ -33,6 +36,9 @@
 #' sampling and spatial uncertainty remain. Weights do not provide concentrations
 #' in unobserved cells. Apply within a defined sampling medium/domain.
 #' Censored rows follow the same validation/exclusion rules as [fit_cen_lognorm()].
+#' Exact observations here describe uncensored input coding, not verified
+#' measurement precision. Method concerns remain visible even when the bounds
+#' coincide. No semiquantitative reporting-class interval is inferred.
 #' @seealso [plot_censored_cdf_bounds()], [declustering_sensitivity()]
 #' @export
 censored_cdf_bounds <- function(df, thresholds, weight_col = NULL,
@@ -55,6 +61,8 @@ censored_cdf_bounds <- function(df, thresholds, weight_col = NULL,
       stop("Weights must be numeric, finite, and nonnegative")
   }
   usable <- intervals$ok & weights > 0
+  method_summary <- .summarize_analytical_methods(df, usable = usable,
+    intervals = intervals, include_methods = FALSE)$summary
   lower <- intervals$lower[usable]; upper <- intervals$upper[usable]
   exact <- lower == upper; left <- lower == 0; right <- is.infinite(upper)
   n <- sum(usable)
@@ -83,13 +91,13 @@ censored_cdf_bounds <- function(df, thresholds, weight_col = NULL,
   structure(list(
     cdf = tibble::tibble(threshold = thresholds, cdf_lower = minimum,
       cdf_upper = maximum, censoring_gap = maximum - minimum),
-    support = tibble::tibble(n_input = nrow(df), n_total = n,
+    support = dplyr::bind_cols(tibble::tibble(n_input = nrow(df), n_total = n,
       n_excluded = sum(!usable), n_exact = sum(exact), n_left = sum(left),
       n_right = sum(right), weighted = !is.null(weight_col),
       exact_fraction = if (n) mean(exact) else NA_real_,
       weighted_exact_fraction = fractions[1L], weighted_left_fraction = fractions[2L],
       weighted_right_fraction = fractions[3L],
-      weight_effective_n = if (n) 1 / sum(weights^2) else 0)),
+      weight_effective_n = if (n) 1 / sum(weights^2) else 0), method_summary)),
     class = "geocensor_cdf_bounds")
 }
 
@@ -109,6 +117,9 @@ censored_cdf_bounds <- function(df, thresholds, weight_col = NULL,
 #' displayed on a log10 concentration axis. Select enough thresholds to inspect
 #' the scientifically relevant concentration range; all usable observations
 #' contribute to every evaluated bound.
+#' Captions retain analytical-method review counts where available. Older saved
+#' results without these fields can still be plotted, with method information
+#' explicitly unavailable rather than reconstructed or cleared.
 #' @export
 plot_censored_cdf_bounds <- function(bounds, unit_label = "ug/kg",
     title = "Empirical CDF censoring bounds") {
@@ -130,7 +141,8 @@ plot_censored_cdf_bounds <- function(bounds, unit_label = "ug/kg",
     ggplot2::scale_y_continuous(name = "Cumulative fraction of observation weight",
       limits = c(0, 1), labels = function(x) paste0(round(100 * x), "%")) +
     ggplot2::labs(title = title, subtitle = subtitle,
-      caption = "Censoring bounds for the observed records;\nsampling and spatial uncertainty are additional.") +
+      caption = paste("Censoring bounds for the observed records;\nsampling and spatial uncertainty are additional.",
+        .method_review_caption(support, support$n_total), sep = "\n")) +
     ggplot2::theme_minimal(base_size = 11) +
     ggplot2::theme(legend.position = "bottom")
 }

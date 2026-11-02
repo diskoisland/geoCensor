@@ -19,6 +19,9 @@
 #' gives a missing exact fraction. Count flags do not assess fit adequacy,
 #' spatial independence, support comparability, preferential selection, or bias.
 #' Clearing the flags must not be interpreted as a certification of validity.
+#' In particular, n_exact counts uncensored input values; it does not certify
+#' exact measurement precision for semiquantitative methods. Method review
+#' remains separate; see [flag_analytical_methods()].
 #' @export
 flag_estimate_information <- function(df, min_exact = 10, min_exact_fraction = 0.05) {
   required <- c("n_total", "n_left", "n_right", "geomean")

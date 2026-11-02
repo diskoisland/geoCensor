@@ -77,6 +77,9 @@
 #' @return A tibble with one row per distribution and columns for sample counts,
 #'   log-likelihood, degrees of freedom, AIC, delta AIC, Akaike weight, best-fit
 #'   flag, convergence flag, and any warning/error message.
+#'   Analytical-method review counts/status are appended for each distribution,
+#'   including unavailable fits; see [flag_analytical_methods()]. Used counts
+#'   describe eligible observations, not successful model fits.
 #' @details
 #' Fits with warnings or nonfinite parameter estimates are marked as not
 #' converged and excluded from delta AIC, Akaike weights, and best-fit flags.
@@ -87,6 +90,9 @@
 #' AIC comparison is not a formal proof that a distribution is true. It is a
 #' likelihood-based diagnostic for whether the lognormal model fits better or
 #' worse than alternative parametric censored models on the same data.
+#' Rankings are conditional on the reported censoring codes; an AIC winner does
+#' not resolve analytical-method concerns, validate measurement precision or
+#' establish independent observations. No reporting-class bounds are inferred.
 #' @export
 compare_censored_distributions <- function(
     df,
@@ -232,6 +238,8 @@ compare_censored_distributions <- function(
     out$best <- FALSE
   }
 
-  out %>%
-    dplyr::arrange(.data$AIC)
+  out <- dplyr::arrange(out, .data$AIC)
+  method_summary <- .summarize_analytical_methods(df, intervals = intervals,
+    include_methods = FALSE)$summary
+  dplyr::bind_cols(out, method_summary[rep(1L, nrow(out)), , drop = FALSE])
 }

@@ -31,4 +31,7 @@ range does not establish a precise population estimate. Thresholds are
 displayed on a log10 concentration axis. Select enough thresholds to inspect
 the scientifically relevant concentration range; all usable observations
 contribute to every evaluated bound.
+Captions retain analytical-method review counts where available. Older saved
+results without these fields can still be plotted, with method information
+explicitly unavailable rather than reconstructed or cleared.
 }

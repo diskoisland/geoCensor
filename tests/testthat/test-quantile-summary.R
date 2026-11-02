@@ -18,7 +18,7 @@ test_that("uncensored quantile summaries match the analytic lognormal MLE", {
   expect_equal(fit$geomean, exp(mu)/1000, tolerance = 1e-6)
   expect_equal(fit$p90, stats::qlnorm(.9, mu, sigma)/1000, tolerance = 1e-6)
   expect_equal(fit$median, fit$geomean)
-  expect_named(fit, c("method", "n_total", "n_left", "n_right", "meanlog", "sdlog",
+  expect_equal(names(fit)[1:14], c("method", "n_total", "n_left", "n_right", "meanlog", "sdlog",
     "geomean", "ci_low", "ci_high", "p10", "median", "p90", "p95", "p99"))
 })
 
