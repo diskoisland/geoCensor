@@ -1,7 +1,7 @@
-# geoCensor 1.1.0 (release candidate)
+# geoCensor 1.1.0
 
-This candidate focuses on USGS National Geochemical Database workflows. A
-release tag has not yet been published.
+Released November 1, 2026. This version focuses on USGS National Geochemical
+Database workflows.
 
 ## Censoring and data integrity
 
