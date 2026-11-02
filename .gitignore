@@ -18,3 +18,8 @@ inst/doc
 
 # Local research reading material; bibliographic notes retain source references.
 /Papers/
+
+# Internal development and literature notes stay local.
+/DEVELOPMENT_LOG.md
+/PAPER_FETCH_LIST.md
+/PAPER_REVIEW.md

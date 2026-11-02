@@ -51,8 +51,8 @@ force update or deletion. The release includes the checked archive, checksums
 and an exact-commit validation receipt. Downloaded asset bytes are verified.
 
 The release's `VALIDATION.md` asset records the final head, merge commit,
-workflow links and archive checksum. Local research artifacts remain unbundled;
-links into `output/` in the development log refer to those local records.
+workflow links and archive checksum. Detailed research records and `output/`
+artifacts are maintained locally and remain unbundled.
 
 
 ## Workflow input correction
