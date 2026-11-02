@@ -2259,3 +2259,27 @@ Final archive SHA-256: `bfd47d1d89828b8cd87efe04a835cdbddb241cefaa12112d9e919fb1
 [Release publication record](https://github.com/diskoisland/geoCensor/releases/tag/v1.1.0)
 [Final local check](output/release_1.1.0_2026-11-01/check.log)
 [Publication receipt](output/release_1.1.0_2026-11-01/PUBLICATION_RECEIPT.md)
+
+
+## Release workflow warning corrected before tagging — November 1, 2026
+
+PR #1 merged normally as 249be3eab7fe1ebf6351488806da45053d1093ef. Inspection
+of its main-workflow annotations exposed an unsupported `check_args` input to
+r-lib/actions/check-r-package@v2 that the earlier review missed. Immediately
+interrupted the publication process while it was waiting for main checks,
+before any v1.1.0 tag or release was created. The initial script/watch log and
+merge receipt are preserved. No original data or source artifact was removed.
+
+The official action definition accepts `args`; its default is exactly our
+intended `c("--no-manual", "--as-cran")`, so prior green jobs did execute the
+intended checks. Corrected the workflow input name to remove the annotation
+and make the intended arguments explicit. This changes CI configuration only,
+plus the release validation/development records; all 97 checked package source
+files and the final archive checksum remain unchanged. No package tests were
+redundantly rerun locally for this excluded configuration edit.
+
+Primary definition: https://github.com/r-lib/actions/blob/v2/check-r-package/action.yaml.
+The fix uses a separate review branch/PR and normal merge, without bypassing
+protection or force updates. The corrected head and its merged main workflow
+must pass before tag/release publication resumes. Spatial confidence limits
+remain experimental.
