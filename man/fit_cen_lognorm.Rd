@@ -10,7 +10,8 @@ fit_cen_lognorm(
   col_left_flag = "left_cen",
   col_left_limit = "left_limit",
   col_right_flag = "right_cen",
-  col_right_limit = "right_limit"
+  col_right_limit = "right_limit",
+  weight_col = NULL
 )
 }
 \arguments{
@@ -25,10 +26,34 @@ fit_cen_lognorm(
 \item{col_right_flag}{Logical column for right-censored}
 
 \item{col_right_limit}{Numeric upper limit for right-censored}
+
+\item{weight_col}{Optional column of nonnegative finite observation weights.
+Zero-weight rows are excluded. With weights, confidence limits are omitted:
+ordinary model intervals do not account for spatial sampling dependence.}
 }
 \value{
 A tibble with n_total, n_left, n_right, geomean, ci_low, ci_high, method.
 }
 \description{
 Fit a lognormal with left and right censoring
+}
+\details{
+Fits require at least six usable observations and two exact detections.
+Uncensored samples and samples with only right censoring are supported.
+Censored rows with missing, nonpositive, or nonfinite limits are excluded,
+even when a numeric detected value is present. Rows flagged in both
+censoring directions raise an error. Missing flags are treated as false.
+Insufficient samples return \code{method = "insufficient_data"}; fitting errors,
+warnings, or invalid parameter estimates return \code{method = "failed_fit"}.
+Both cases return missing geometric means and confidence limits.
+
+Unweighted confidence limits assume independent observations and an
+appropriate lognormal model. They do not account for spatial dependence
+or preferential sampling; spatial confidence limits remain experimental.
+Minimum observation counts are computational guards, not reliability guarantees.
+}
+\references{
+Helsel, D. R. (1990). Less than obvious: Statistical treatment of data below
+the detection limit. \emph{Environmental Science & Technology}, 24(12),
+1766-1774. \doi{10.1021/es00082a001}
 }

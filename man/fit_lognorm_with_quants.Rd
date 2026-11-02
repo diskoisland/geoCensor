@@ -10,16 +10,32 @@ fit_lognorm_with_quants(df, probs = c(0.1, 0.5, 0.9, 0.95, 0.99))
 \item{df}{Data frame with censoring fields: \code{detected_val}, \code{left_cen},
 \code{left_limit}, \code{right_cen}, \code{right_limit}.}
 
-\item{probs}{Quantile probabilities to return (default
-\code{c(0.1, 0.5, 0.9, 0.95, 0.99)}).}
+\item{probs}{Unique numeric probabilities between zero and one (inclusive).
+Defaults to \code{c(0.1, 0.5, 0.9, 0.95, 0.99)}. Probability 0.5 is reported as
+\code{median}; other probabilities add \code{p}-prefixed percentage columns.}
 }
 \value{
-A one-row tibble with \code{geomean}, \code{ci_low}, \code{ci_high}, \code{meanlog},
-\code{sdlog}, sample counts, and the requested quantiles (mg/kg). Returns NA
-values with \code{method = "MLE"} when there are too few detections to fit.
+A one-row tibble with \code{method}, sample counts, \code{meanlog} (log ug/kg),
+\code{sdlog}, \code{geomean}, \code{ci_low}, \code{ci_high}, \code{median} and requested quantiles.
+Concentration summaries are in mg/kg. The median is always included.
+Method is \code{MLE} on success, \code{insufficient_data} for insufficient usable
+data, or \code{failed_fit} for a numerical failure. Unavailable fitted values
+remain NA, including every requested quantile.
 }
 \description{
-Fits a left/right interval-censored lognormal (via \code{\link[survival:survreg]{survival::survreg()}}) and
-returns the geometric mean, 95\% confidence interval, and selected fitted
-quantiles, all converted from ug/kg to mg/kg.
+Fits an interval-censored lognormal and reports geometric means, model-based
+confidence limits and fitted concentration quantiles in mg/kg. Input
+concentrations and limits must be in ug/kg.
+}
+\details{
+Uses the same interval validation and numerical fit guards as
+\code{\link[=fit_cen_lognorm]{fit_cen_lognorm()}}. Fits require at least six usable records and two exact
+detections, without requiring any left-censored records. Invalid limits
+remain excluded; conflicting flags raise an error. Warnings, fitting errors
+and invalid parameter estimates suppress all fitted values. Count minima
+are computational guards, not evidence of reliable inference.
+
+Confidence limits assume an independent-observation lognormal model; they
+do not account for spatial dependence or preferential sampling. Spatial
+confidence limits remain experimental.
 }

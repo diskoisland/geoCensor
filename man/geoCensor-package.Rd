@@ -6,7 +6,7 @@
 \alias{geoCensor-package}
 \title{geoCensor: Censoring-Aware Analysis of USGS National Geochemical Database Data}
 \description{
-Tools to parse, model, and visualise left- and right-censored element concentrations from the U.S. Geological Survey National Geochemical Database (NGDB) and similar geochemical datasets. Functions parse USGS qvalue/qualifier detection-limit encodings into interval-censored fields, estimate censoring-aware maximum-likelihood lognormal geometric means (by state, via interval-censored survival regression) with confidence intervals, provide substitution-based alternatives for comparison, join chemistry to sample metadata, compute robust (bootstrap) Spearman correlations, run robust log10 principal component analysis, and produce ranked-bar and choropleth maps of state-level geometric means.
+Tools to parse, model, and visualise left- and right-censored element concentrations from the U.S. Geological Survey National Geochemical Database (NGDB) and similar geochemical datasets. Functions parse USGS qvalue/qualifier detection-limit encodings into interval-censored fields, estimate censoring-aware maximum-likelihood lognormal geometric means (by state, via interval-censored survival regression) with confidence intervals, provide substitution-based alternatives for comparison, join chemistry to sample metadata, compute robust (bootstrap) Spearman correlations, run robust log10 principal component analysis, audit sampling support and observation counts, evaluate cell-declustering sensitivity, and produce ranked-bar and choropleth maps of state-level geometric means.
 }
 \seealso{
 Useful links:

@@ -1,0 +1,46 @@
+#!/usr/bin/env Rscript
+suppressPackageStartupMessages(pkgload::load_all('.',quiet=TRUE))
+source('scripts/analysis/conley_survreg_reference.R')
+f<-'output/conley_reference_checks_2026-10-31';dir.create(f,recursive=TRUE,showWarnings=FALSE)
+set.seed(8);value<-exp(rnorm(60,2,.7));left<-value<4;right<-value>12
+x<-data.frame(detected_val=ifelse(left|right,NA_real_,value),left_cen=left,left_limit=ifelse(left,4,NA_real_),
+ right_cen=right,right_limit=ifelse(right,12,NA_real_))
+w<-rep(c(.2,1,3),20);model<-fit_censored_score_reference(x,w)
+ll<-function(theta){mu<-theta[1];s<-exp(theta[2]);z<-(log(value)-mu)/s
+ a<-dnorm(z,log=TRUE)-log(s)-log(value)
+ a[left]<-pnorm((log(4)-mu)/s,log.p=TRUE)
+ a[right]<-pnorm((log(12)-mu)/s,lower.tail=FALSE,log.p=TRUE)
+ a*model$weights}
+eps<-1e-5
+numeric_scores<-sapply(1:2,function(j){p<-m<-model$theta;p[j]<-p[j]+eps;m[j]<-m[j]-eps;(ll(p)-ll(m))/(2*eps)})
+stopifnot(max(abs(numeric_scores-model$scores))<1e-7,max(abs(model$bread-vcov(model$fit)))<1e-7)
+coords<-cbind(rep(0:19,each=3),0)
+a<-spatial_hac_reference(model,coords,.1)
+b<-spatial_hac_reference(model,coords,1e10,kernel='gaussian')
+expected<-model$bread%*%crossprod(a$site_scores)%*%model$bread
+stopifnot(max(abs(a$vcov-expected))<1e-10,b$se_log_geomean<a$se_log_geomean*.001)
+scaled<-fit_censored_score_reference(x,w*17)
+stopifnot(max(abs(spatial_hac_reference(scaled,coords,.1)$vcov-a$vcov))<1e-7)
+# Uncensored equal-density reduction: location-mean HC0 variance on the log scale.
+set.seed(84);y<-exp(rep(rnorm(20,2,.6),each=3)+rnorm(60,sd=.2))
+x$detected_val<-y;x$left_cen<-FALSE;x$right_cen<-FALSE
+unc<-fit_censored_score_reference(x)
+u<-spatial_hac_reference(unc,coords,.1)
+location_means<-as.numeric(tapply(log(y),rep(1:20,each=3),mean))
+stopifnot(abs(u$vcov[1,1]-sum((location_means-mean(location_means))^2)/20^2)<1e-8)
+checks<-data.frame(check=c('weighted_score_numeric_derivative','bread_matches_survreg','isolated_location_HC0',
+ 'weight_scale_invariance','uncensored_location_mean_variance','wide_bandwidth_can_shrink_SE'),passed=TRUE)
+readr::write_csv(checks,file.path(f,'checks.csv'))
+if(requireNamespace('sandwich',quietly=TRUE)){
+ extracted<-sandwich::estfun(model$fit)
+ comparison<-data.frame(parameter=c('mu','log_scale'),numeric_score_sum=colSums(numeric_scores),
+  reference_score_sum=colSums(model$scores),sandwich_estfun_sum=colSums(extracted),
+  max_reference_error=apply(abs(model$scores-numeric_scores),2,max),
+  max_sandwich_error=apply(abs(extracted-numeric_scores),2,max))
+ readr::write_csv(comparison,file.path(f,'score_extractor_comparison.csv'))
+ writeLines(paste('sandwich',packageVersion('sandwich'),'survival',packageVersion('survival')),file.path(f,'versions.txt'))
+ print(comparison)
+}
+writeLines(capture.output(sessionInfo()),file.path(f,'session_info.txt'))
+print(checks)
+writeLines('Research reference checks passed; coverage validation remains pending.',file.path(f,'COMPLETED.txt'))

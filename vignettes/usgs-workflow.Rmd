@@ -1,0 +1,236 @@
+---
+title: "A reproducible USGS geochemical workflow"
+author: "Ross Edwards"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{A reproducible USGS geochemical workflow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+options(width = 100)
+```
+
+geoCensor converts USGS best-value chemistry records into censoring intervals,
+checks the input, and estimates concentrations separately by element and domain.
+This example uses synthetic data so it can run without downloading the NGDB.
+Its coordinates and concentrations are illustrative, not observations or
+estimates for the named states.
+
+## Start with one sampling medium
+
+Real input tables contain one selected chemistry result per sample and species,
+plus sample metadata. Read sample IDs as text to preserve leading zeroes:
+
+```{r real-input, eval=FALSE}
+chemistry <- readr::read_csv(
+  "ngdbsoil/bestvalue.csv",
+  col_types = readr::cols(lab_id = readr::col_character())
+)
+metadata <- read_clean_main("ngdbsoil/main.csv")
+```
+
+Run soil and sediment separately. Before pooling, decide which depths, horizons,
+size fractions, sample media, and analytical methods describe your intended
+population. A state boundary is an administrative grouping, not a geological
+homogeneity assumption.
+
+## Build a small reproducible example
+
+```{r synthetic}
+library(geoCensor)
+set.seed(413)
+sites <- expand.grid(easting = 0:3, northing = 0:3, state = c("WI", "ID"))
+metadata <- sites[rep(seq_len(nrow(sites)), each = 3), ]
+metadata$lab_id <- sprintf("%04d", seq_len(nrow(metadata)))
+metadata$country <- "United States"
+metadata$x_m <- metadata$easting * 10000
+metadata$y_m <- metadata$northing * 10000
+metadata$depth <- rep(c("0-10 cm", "10-20 cm", "0-10 cm"), nrow(sites))
+metadata$horizon <- rep(c("A", "B", "A"), nrow(sites))
+metadata$mesh_size <- rep(c("<80 mesh", "<80 mesh", "<200 mesh"), nrow(sites))
+
+make_element <- function(element, center, lod, upper) {
+  value <- exp(log(center) + rnorm(nrow(metadata), sd = 0.6))
+  original <- ifelse(value < lod, as.character(-lod),
+    ifelse(value > upper, paste0(upper, ".11111"), as.character(value)))
+  # Emulate an NGDB export whose qvalue loses the upper-censor suffix by rounding.
+  reported <- ifelse(value > upper, as.character(round(as.numeric(original), 2)), original)
+  data.frame(lab_id = metadata$lab_id, species = element, unit = "ppm",
+             qvalue = reported, amethod = "illustrative_total_method",
+             summary = paste(original, "illustrative_total_method", sep = ", "))
+}
+chemistry <- rbind(make_element("Ag", 0.1, 0.08, 1),
+                   make_element("Pb", 20, 10, 100),
+                   make_element("Zn", 70, 30, 200))
+```
+
+The example contains multiple supports at each site. That is a reason to review
+comparability, not to assume that all samples at the same coordinates are
+interchangeable.
+
+## Audit sampling support and joins
+
+```{r audit}
+support <- sampling_support_audit(
+  metadata, group_cols = "state",
+  support_cols = c("depth", "horizon", "mesh_size"),
+  x_col = "x_m", y_col = "y_m"
+)
+support$fields
+head(support$locations)
+```
+
+The audit reports recorded differences and missing information separately.
+Exact coordinate matches can also reflect coordinate rounding or reuse. It
+neither deletes records nor proves that matching support labels are comparable.
+Unknown metadata must not be interpreted as evidence of equivalence.
+
+```{r parsing}
+ag <- build_element(chemistry, "Ag")
+ag[c("lab_id", "qvalue_raw", "detected_val", "left_cen", "right_cen",
+     "validation_status", "censoring_source")][1:6, ]
+```
+
+Supported mass-fraction units are converted to ug/kg. Invalid values and
+unsupported units receive explicit validation reasons. When an explicit
+upper-censor marker in the first summary analysis agrees with rounded qvalue,
+the builder recovers it while retaining the original reported value.
+
+```{r join}
+ag_main <- join_soil_main(ag, metadata,
+  extra_cols = c("state", "country", "x_m", "y_m", "depth", "horizon", "mesh_size"))
+attr(ag_main, "join_audit")
+```
+
+Metadata IDs must be nonblank and unique. Unmatched chemistry rows and repeated
+chemistry IDs produce warnings and audit counts. Repeated sample/element results
+must be resolved before batch estimation or widening; the package does not
+silently average them.
+
+## Estimate all elements within reviewed domains
+
+For this illustration, use the same shallow horizon and size fraction, then
+analyze each state and element separately. Real inclusion rules need geological
+and laboratory justification; these illustrative labels are not a universal
+NGDB filtering rule.
+
+```{r estimation}
+selected_ids <- metadata$lab_id[
+  metadata$depth == "0-10 cm" & metadata$horizon == "A" & metadata$mesh_size == "<80 mesh"
+]
+selected_chemistry <- chemistry[chemistry$lab_id %in% selected_ids, ]
+results <- analyze_elements(
+  selected_chemistry, main_df = metadata, group_cols = "state"
+)
+results$estimates[c("element", "state", "n_total", "n_exact", "geomean", "review_status")]
+results$validation
+head(results$distributions)
+```
+
+The censored lognormal estimate is exp(meanlog), a geometric mean under the
+working lognormal model. Its model-based confidence interval does not account
+for spatial dependence or uncertainty from a preferential sampling design.
+Insufficient-data and failed-fit rows remain explicit. Count-based review flags
+are added without changing or filtering estimates. By default fewer than 10
+exact observations or less than 5% exact observations triggers review. These
+are configurable conventions, not validated statistical cutoffs, and a cleared
+flag does not establish model adequacy or spatial independence.
+
+## Assess sensitivity to clustering
+
+Use projected coordinates in appropriate physical units. Real longitude and
+latitude must be transformed to an appropriate projected coordinate system;
+the functions cannot infer a coordinate reference system from numeric columns.
+The example already supplies synthetic metre coordinates.
+
+```{r spatial}
+spatial <- analyze_elements(
+  selected_chemistry, main_df = metadata, group_cols = "state",
+  cell_sizes = c(5000, 10000, 20000), x_col = "x_m", y_col = "y_m",
+  n_offsets = 10
+)
+head(spatial$declustering)
+```
+
+Each occupied cell shares its total influence among its observations; default
+weights average 100 grid placements. Cell size should reflect sampling spacing
+and the geological question, with several scales reviewed. Weights are
+recalculated for each element/domain using its own usable observations.
+
+The comparison uses the same usable chemistry/coordinate subset for weighted
+and unweighted estimates. Weight effective sample size describes imbalance in
+weights; it is not a count of spatially independent samples. Declustering does
+not identify concentrations in unsampled terrain or correct every mechanism of
+preferential site selection.
+
+## Inspect distribution shape without replacing censored values
+
+Use a single reviewed domain. Here that is the illustrative Wisconsin subset
+with the shallow horizon and matching size fraction selected above:
+
+```{r cdf-bounds, fig.width=7, fig.height=5}
+domain <- ag_main[ag_main$lab_id %in% selected_ids & ag_main$state == "WI", ]
+domain$cell_weight <- cell_declustering_weights(domain, "x_m", "y_m", 10000)
+shape <- censored_cdf_bounds(domain,
+  thresholds = 10^seq(0, 3, length.out = 100), weight_col = "cell_weight")
+shape$support
+plot_censored_cdf_bounds(shape, title = "Synthetic Wisconsin Ag: matching supports")
+```
+
+Each vertical range shows the possible cumulative fraction at that threshold,
+given the exact values, censoring limits and weights. It does not interpolate
+between thresholds, replace nondetects with a fraction of their limits, or fit
+a lognormal distribution. The bounds describe this empirical dataset; they
+are not population confidence bands. Sampling and spatial uncertainty remain
+even when bounds coincide. A state boundary alone does not establish a
+homogeneous geological population in real data.
+
+The existing fitted/nonparametric censored CDF display can be used for model
+comparison where fitting is appropriate. A relative AIC winner does not prove
+model adequacy. Thinning records until a normality test stops rejecting would
+remove test power rather than establish an adequate model.
+
+## Treat spatial intervals as experimental
+
+```{r bootstrap, eval=FALSE}
+# Illustrative widths only; evaluate dependence, domain extent, and block origins.
+boot <- spatial_block_bootstrap(
+  reviewed_single_element_domain, "x_m", "y_m",
+  cell_size = 10000, block_size = 50000, n_boot = 999, seed = 42
+)
+boot$summary
+boot$replicates
+```
+
+The prototype preserves repeated block draws, recalculates weights, and refits
+the censored model. It suppresses intervals when blocks or successful fits are
+insufficient. Software convergence does not establish calibrated coverage.
+Simulation studies have shown substantial undercoverage with correlation across
+blocks. Consequently these intervals are experimental and are not automatically
+added to the routine all-element outputs. Increasing block width or changing the
+interval formula alone has not established reliable NGDB inference.
+
+The target also matters: a geometric mean over the observed sites, a realized
+geographical domain, and a broader population are different quantities. Define
+the intended population and sampling assumptions before interpreting uncertainty.
+
+## Save a reviewable run
+
+```{r export, eval=FALSE}
+dir.create("output/reviewed_domain", recursive = TRUE, showWarnings = FALSE)
+readr::write_csv(results$estimates, "output/reviewed_domain/estimates.csv")
+readr::write_csv(results$validation, "output/reviewed_domain/validation.csv")
+readr::write_csv(spatial$declustering, "output/reviewed_domain/declustering.csv")
+saveRDS(list(results = results, spatial = spatial, support = support),
+        "output/reviewed_domain/analysis.rds")
+writeLines(capture.output(sessionInfo()), "output/reviewed_domain/session_info.txt")
+```
+
+Record input versions, inclusion rules, coordinate reference systems, domain
+choices, cell/block sizes, and failed fits along with the results. Use fresh
+output folders or validated checkpoints when inputs or methods change.

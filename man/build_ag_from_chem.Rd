@@ -15,8 +15,15 @@ unit. A qualifier column is optional and treated as missing when absent.}
 \item{to_ugkg}{Logical; if TRUE, convert ppm (mg/kg) → µg/kg.}
 }
 \value{
-A data frame with one row per lab_id for that element, including
+A data frame retaining each input row for that element, including
 detected_val, left_cen, left_limit, right_cen, right_limit, value_unit.
+\code{validation_status} identifies unusable values and unsupported units.
+Supported mass-fraction units are ppm, mg/kg, ppb, ug/kg (including micro
+symbols), pct, and percent. Duplicate sample rows are retained.
+If \code{summary} contains an explicit upper-censoring suffix in its first
+(best-ranked) analysis and that value rounds to the reported qvalue, its
+censoring information is recovered. \code{qvalue_raw} retains the original value;
+\code{censoring_source} records whether the limit came from summary or qvalue.
 }
 \description{
 Build Ag (or other element) censoring fields from a chemistry data frame
