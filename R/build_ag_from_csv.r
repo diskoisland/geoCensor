@@ -7,6 +7,7 @@
 #' @return A data frame with one row per lab_id for the requested element.
 #' @export
 build_ag_from_csv <- function(chem_csv, element = "Ag", to_ugkg = TRUE) {
-  chem_df <- readr::read_csv(chem_csv, show_col_types = FALSE)
+  chem_df <- readr::read_csv(chem_csv, col_types = readr::cols(lab_id = readr::col_character()),
+                             show_col_types = FALSE)
   build_ag_from_chem(chem_df, element = element, to_ugkg = to_ugkg)
 }

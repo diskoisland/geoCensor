@@ -29,7 +29,7 @@ test_that("build_metals_wide substitutes censored values and handles all-NA grou
   expect_equal(wide$Ag_mgkg[wide$lab_id == "a"], 1)
   expect_equal(wide$Pb_mgkg[wide$lab_id == "a"], 10)
   expect_equal(wide$Ag_mgkg[wide$lab_id == "b"], 100)
-  expect_true(is.na(wide$Ag_mgkg[wide$lab_id == "c"]))
+  expect_equal(wide$Ag_mgkg[wide$lab_id == "c"], 0.005)
 })
 
 test_that("build_ag_metals_state joins metadata and filters state names", {

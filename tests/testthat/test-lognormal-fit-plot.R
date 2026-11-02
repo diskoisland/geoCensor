@@ -12,7 +12,38 @@ test_that("plot_lognormal_fit returns a ggplot object", {
   expect_s3_class(p, "ggplot")
   expect_true(length(p$layers) >= 5)
   expect_equal(p$labels$title, "Test fit")
-  expect_equal(p$labels$caption, "GM is the fitted lognormal median, shown at 50% cumulative probability.")
+  expect_match(p$labels$caption, "GM = exp\\(meanlog\\)")
+  expect_match(p$labels$caption, "exact detections only")
+})
+
+test_that("plot_lognormal_fit can hide detected points in CDF view", {
+  df <- tibble::tibble(
+    detected_val = c(NA, NA, 80, 100, 120, 150, 200, NA),
+    left_cen = c(TRUE, TRUE, rep(FALSE, 6)),
+    left_limit = c(40, 60, rep(NA_real_, 6)),
+    right_cen = c(rep(FALSE, 7), TRUE),
+    right_limit = c(rep(NA_real_, 7), 300)
+  )
+
+  p <- plot_lognormal_fit(df, show_detects = FALSE)
+
+  expect_s3_class(p, "ggplot")
+  expect_true(length(p$layers) >= 4)
+})
+
+test_that("plot_lognormal_fit can show nonparametric censored CDF", {
+  df <- tibble::tibble(
+    detected_val = c(NA, NA, 80, 100, 120, 150, 200, NA),
+    left_cen = c(TRUE, TRUE, rep(FALSE, 6)),
+    left_limit = c(40, 60, rep(NA_real_, 6)),
+    right_cen = c(rep(FALSE, 7), TRUE),
+    right_limit = c(rep(NA_real_, 7), 300)
+  )
+
+  p <- plot_lognormal_fit(df, show_nonparametric = TRUE)
+
+  expect_s3_class(p, "ggplot")
+  expect_match(p$labels$caption, "nonparametric censored CDF")
 })
 
 test_that("plot_lognormal_fit still supports density view", {
