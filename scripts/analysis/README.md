@@ -11,9 +11,8 @@ consult each study's protocol and source snapshots before attempting a rerun.
 A completed study may refuse reruns if current sources differ from its frozen
 signature. Preserve its recorded sources rather than replacing its results.
 
-`DEVELOPMENT_LOG.md` records simulations, independent confirmation, numerical
-failures and unresolved assumptions. Its `output/` links refer to local,
-unbundled research artifacts. Numerical convergence, likelihood preference and
+Detailed study records and `output/` artifacts are maintained locally and are
+not bundled with this repository. Numerical convergence, likelihood preference and
 sample-count guards do not establish valid spatial inference. Routine weighted
 confidence limits remain missing. Confidence limits for the spatial research
 remain experimental, and no real-NGDB site-block test is automatically run.
