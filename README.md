@@ -33,8 +33,7 @@ open it with `vignette("usgs-workflow", package = "geoCensor")`.
 
 ## Installation
 
-Implementation progress, validation results, and release preparation are
-recorded in the [development log](DEVELOPMENT_LOG.md).
+Release changes and compatibility notes are recorded in [NEWS.md](NEWS.md).
 
 ```r
 # install.packages("remotes")
@@ -308,7 +307,7 @@ coverage of nominal 95% intervals was 88%, 91%, and 94% for the three
 independent-site density settings, and 73% versus 82% for correlated sites with
 smaller versus larger blocks. All fits converged. These results show that the
 prototype is not calibrated for routine use; it remains experimental and is not
-applied to the full USGS results. See the development log for the saved report.
+applied to the full USGS results.
 
 A subsequent benchmark study reproduced exact site-log-mean resampling and used
 independent confirmation seeds. With 3,000 uncensored confirmation datasets,
@@ -317,8 +316,8 @@ percentile method achieved 94.6%. Censored independent-site coverage was 96–96
 in 200 datasets per setting, while correlated-site coverage remained 77–85%.
 Basic and normal log-scale formulas did not resolve the spatial shortfall.
 The main unresolved issue in those scenarios was underestimated uncertainty from
-dependence across blocks. See the development log for the diagnostic report;
-these findings do not validate routine intervals for irregular NGDB sampling.
+dependence across blocks. These findings do not validate routine intervals for
+irregular NGDB sampling.
 
 A further independently seeded study used irregular sites and omitted 80 of
 144 candidate sites. Confirmation coverage was 96% under independent uniform
@@ -338,8 +337,7 @@ failed under heavy censoring: confirmation
 coverage was about 86–94%, with downward point-estimate bias. Moderate-censoring
 coverage was about 96–99%. These are restricted simulation results, not validated
 USGS confidence intervals. The calibration routines remain outside the public
-API, and weighted routine confidence limits remain missing. See the development
-log for assumptions, independent confirmation, and recorded failures.
+API, and weighted routine confidence limits remain missing.
 
 ## Detection-limit (censoring) conventions
 
