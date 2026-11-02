@@ -19,7 +19,9 @@ join_soil_main(
 \item{extra_cols}{Character vector of extra metadata cols to keep.}
 }
 \value{
-Joined data frame.
+Joined data frame with a \code{join_audit} attribute containing matched,
+unmatched, and repeated chemistry row counts. Duplicate or missing metadata
+IDs raise an error. Unmatched and repeated chemistry rows warn and are retained.
 }
 \description{
 Join element data (e.g., Ag) to NGDB main metadata by lab_id

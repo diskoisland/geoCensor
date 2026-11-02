@@ -69,3 +69,16 @@ test_that("spatial_coverage_by_state validates inputs", {
     "grid_deg must be one positive number"
   )
 })
+
+test_that("spatial coverage reads coordinate labels rather than factor level codes", {
+  x <- tibble::tibble(state = c(" WI ", "WI", " "),
+                      lat_wgs84 = factor(c("43.1", "43.9", "40")),
+                      long_wgs84 = factor(c("-89.1", "-89.9", "-100")))
+  out <- spatial_coverage_by_state(x)
+  expect_equal(out$state, "WI")
+  expect_equal(out$n_spatial, 2)
+  expect_equal(out$lat_min, 43.1)
+  expect_equal(out$lat_max, 43.9)
+  expect_equal(out$lon_min, -89.9)
+  expect_equal(out$lon_max, -89.1)
+})

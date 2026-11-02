@@ -23,9 +23,13 @@
   left_cen[is.na(left_cen)] <- FALSE
   right_cen[is.na(right_cen)] <- FALSE
 
+  if (any(left_cen & right_cen)) {
+    stop(caller, ": rows cannot be both left- and right-censored")
+  }
+
   is_left  <- left_cen & is.finite(left_limit) & left_limit > 0
   is_right <- right_cen & is.finite(right_limit) & right_limit > 0
-  is_exact <- is.finite(detected_val) & detected_val > 0 & !is_left & !is_right
+  is_exact <- is.finite(detected_val) & detected_val > 0 & !left_cen & !right_cen
 
   n <- nrow(df)
   lower <- upper <- rep(NA_real_, n)
@@ -74,6 +78,12 @@
 #'   log-likelihood, degrees of freedom, AIC, delta AIC, Akaike weight, best-fit
 #'   flag, convergence flag, and any warning/error message.
 #' @details
+#' Fits with warnings or nonfinite parameter estimates are marked as not
+#' converged and excluded from delta AIC, Akaike weights, and best-fit flags.
+#' Raw AIC values are retained for inspection. Invalid censoring limits are
+#' excluded and contradictory censoring flags raise an error, as in
+#' [fit_cen_lognorm()].
+#'
 #' AIC comparison is not a formal proof that a distribution is true. It is a
 #' likelihood-based diagnostic for whether the lognormal model fits better or
 #' worse than alternative parametric censored models on the same data.
@@ -89,6 +99,18 @@ compare_censored_distributions <- function(
     min_total = 6,
     min_exact = 2
 ) {
+  if (!is.character(distributions) || !length(distributions) ||
+      anyNA(distributions) || any(!nzchar(distributions)) ||
+      anyDuplicated(distributions)) {
+    stop("distributions must be a nonempty character vector of unique names")
+  }
+  for (value in list(min_total = min_total, min_exact = min_exact)) {
+    if (!is.numeric(value) || length(value) != 1L || is.na(value) ||
+        !is.finite(value) || value < 1 || value != floor(value)) {
+      stop("min_total and min_exact must be positive whole numbers")
+    }
+  }
+
   intervals <- .censored_intervals(
     df = df,
     col_detected = col_detected,
@@ -171,6 +193,11 @@ compare_censored_distributions <- function(
     }
 
     ll <- stats::logLik(fit)
+    converged <- !length(warn) &&
+      all(is.finite(stats::coef(fit))) &&
+      is.finite(fit$scale) && fit$scale > 0 &&
+      is.finite(as.numeric(ll)) && all(is.finite(stats::vcov(fit)))
+
 
     tibble::tibble(
       distribution = dist,
@@ -181,16 +208,17 @@ compare_censored_distributions <- function(
       logLik = as.numeric(ll),
       df = as.numeric(attr(ll, "df")),
       AIC = stats::AIC(fit),
-      converged = TRUE,
+      converged = converged,
       message = if (length(warn)) paste(unique(warn), collapse = " | ") else NA_character_
     )
   }
 
   out <- dplyr::bind_rows(lapply(distributions, fit_one))
 
-  finite_aic <- is.finite(out$AIC)
+  finite_aic <- out$converged & is.finite(out$AIC)
   if (any(finite_aic)) {
     delta <- out$AIC - min(out$AIC[finite_aic])
+    delta[!finite_aic] <- NA_real_
     weights <- exp(-0.5 * delta)
     weights[!finite_aic] <- NA_real_
     weights <- weights / sum(weights, na.rm = TRUE)

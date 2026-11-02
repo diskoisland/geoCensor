@@ -2,6 +2,8 @@
 
 **Censoring-aware analysis of USGS National Geochemical Database (NGDB) data.**
 
+Source version **1.1.0**. See [NEWS.md](NEWS.md) for changes and compatibility notes.
+
 I wrote geoCensor for working with USGS National Geochemical Database tables where a lot of the useful information is tucked inside detection limits, qualifiers, and non-detects. Those details matter: in the NGDB, detection limits vary by method and over time, so dropping non-detects or replacing everything with LOD/2 can move the center of the data in ways that are hard to see later.
 
 The package turns USGS `qvalue` and `qualifier` fields into concentration intervals, including open-ended intervals for non-detects and greater-than values. It then estimates geometric means and confidence intervals with maximum-likelihood lognormal models using interval-censored survival regression. It also includes LOD/2-style substitution summaries for comparison, distribution diagnostics, spatial joins, robust correlation analysis, robust PCA, and mapping helpers.
@@ -13,8 +15,26 @@ To generate the MLE:
 
 The lognormal model is fit with `survival::survreg(..., dist = "lognormal")`, and `exp(meanlog)` is used as the geometric mean.
 
+Ordinary model confidence limits assume independent observations and an
+appropriate lognormal model. They do not account for spatial dependence or
+preferential sampling. Declustering-weighted fits omit routine confidence
+limits; spatial confidence procedures remain experimental.
+
+The censored-data treatment follows Helsel (1990), which contrasts fixed
+substitution with distributional maximum-likelihood and robust methods:
+D. R. Helsel, “Less than obvious: Statistical treatment of data below the
+detection limit,” *Environmental Science & Technology* 24(12), 1766-1774,
+[doi:10.1021/es00082a001](https://doi.org/10.1021/es00082a001).
+
+
+A runnable, synthetic end-to-end example is available in the
+[USGS workflow vignette](vignettes/usgs-workflow.Rmd). Installed packages can
+open it with `vignette("usgs-workflow", package = "geoCensor")`.
 
 ## Installation
+
+Implementation progress, validation results, and release preparation are
+recorded in the [development log](DEVELOPMENT_LOG.md).
 
 ```r
 # install.packages("remotes")
@@ -65,9 +85,261 @@ system.file("examples", "ag_seed_state_mle.R", package = "geoCensor")
 system.file("examples", "test_ag_spatial_coverage_step_by_step.R", package = "geoCensor")
 system.file("examples", "ag_state_mle_spatial_coverage.R", package = "geoCensor")
 system.file("examples", "test_ag_lognormal_fit_plot_step_by_step.R", package = "geoCensor")
+system.file("examples", "test_idaho_ag_lognormal_fit_plot.R", package = "geoCensor")
+system.file("examples", "test_idaho_ag_weibull_fit_plot.R", package = "geoCensor")
+system.file("examples", "test_us_pooled_ag_distribution_fit_plot.R", package = "geoCensor")
+system.file("examples", "test_us_pooled_ag_nonparametric_cdf_plot.R", package = "geoCensor")
 system.file("examples", "ag_lognormal_fit_plot.R", package = "geoCensor")
 system.file("examples", "ag_hotspot_map.R", package = "geoCensor")
 ```
+
+For a single element, run the reusable command-line workflow against an NGDB
+chemistry or best-value CSV:
+
+```sh
+Rscript inst/examples/analyze_element_dataset.R data/ngdbsoil/bestvalue.csv Ag output/Ag
+```
+
+This requires the installed geoCensor package. Replace `Ag` with another element
+symbol. The workflow converts supported units (`ppm`, `mg/kg`, `ppb`, `ug/kg`, micro-symbol equivalents, and percent units) to ug/kg and
+exports normalized observations, the pooled estimate, censored distribution
+comparisons, a fitted CDF plot when estimation succeeds, serialized results,
+a validation summary with exclusion reasons, a run summary, and R session information. Unsupported units stop the analysis.
+
+Input validation retains invalid chemistry rows with missing concentration fields
+and an explicit `validation_status`: missing or invalid values, nonpositive
+detections, invalid limits, conflicting encodings, unknown qualifiers, or
+unsupported units. Blank/missing, `L`, `N`, `<`, `G`, and `>` qualifiers are accepted;
+other codes need review before use. CSV imports preserve leading zeroes in
+sample identifiers.
+
+Metadata joins reject duplicate or blank metadata IDs, warn about unmatched
+or repeated chemistry IDs, and retain chemistry rows without multiplying them.
+The `join_audit` attribute records match counts. Wide metals tables reject
+repeated sample/element pairs instead of averaging them; choose the appropriate
+result explicitly before widening. Their `validation_summary` attribute records
+usable and excluded input counts.
+
+## Audit sampling support before pooling
+
+```r
+support <- sampling_support_audit(
+  metadata, group_cols = "state",
+  support_cols = c("depth", "horizon", "mesh_size"),
+  x_col = "long_wgs84", y_col = "lat_wgs84"
+)
+support$fields
+support$locations
+```
+
+Use fields actually available in your dataset; `support_cols = NULL` selects
+available standard metadata fields. Sediment metadata may omit horizon. This
+is a descriptive audit: different recorded labels and missing information are
+reported separately. Exact coordinate reuse may reflect rounding or different
+sample supports. Matching or missing labels do not establish comparability;
+no records are automatically merged, dropped, or assigned weights.
+
+## Analyze all elements
+
+Analyze every nonblank species in an NGDB chemistry or best-value table:
+
+```r
+results <- analyze_elements(chemistry)
+results$estimates
+results$validation
+results$distributions
+```
+
+Batch estimates now include `n_exact`, `exact_fraction`, and configurable
+count-based review flags. Defaults flag fewer than 10 exact observations or
+less than 5% exact observations. These are review conventions, not validated
+requirements for reliable inference; clearing the flags does not establish
+spatial independence, comparable sample support, or an adequate model.
+Use `min_exact_review` and `min_exact_fraction_review` to state alternative
+review conventions. Existing estimate tables can be annotated without changing
+their estimates with `flag_estimate_information()`.
+
+Use `elements = c("Ag", "Pb", "Zn")` to select a subset. Every selected element
+is analyzed separately in ug/kg; unusable units and invalid observations are
+counted by reason. Elements with insufficient usable data remain in the results.
+Duplicate sample IDs within an element must be resolved before analysis.
+
+For spatial sensitivity, supply metadata with projected coordinates and specify
+analysis domains explicitly. Weights are recalculated within each element and
+domain, using its own usable observations:
+
+```r
+results <- analyze_elements(
+  chemistry, main_df = metadata_projected, group_cols = "state",
+  cell_sizes = c(5000, 10000, 20000), x_col = "x_m", y_col = "y_m"
+)
+results$declustering
+results$joins
+```
+
+Run soil and sediment separately, or supply an appropriate medium column among
+`group_cols`. A state is an administrative grouping; use geological domains
+instead where they better describe the population being estimated.
+
+The installed package also provides a batch command-line workflow:
+
+```sh
+Rscript inst/examples/analyze_all_elements.R bestvalue.csv output/all_elements
+# With projected metadata, cell widths in metres, and separate state analyses:
+Rscript inst/examples/analyze_all_elements.R bestvalue.csv output/all_spatial main_projected.csv x_m y_m 5000,10000,20000 state
+```
+
+It exports estimates, distribution comparisons, validation counts, optional spatial
+sensitivity and join audits, serialized results, a run summary, and session details.
+
+## Reducing the influence of clustered samples
+
+`spatial_coverage_by_state()` describes sampling spread. To assess how clustering
+affects estimated concentrations, use cell declustering within one sampling
+medium and a defined spatial or geological domain. Project coordinates into a
+suitable coordinate system first; decimal degrees do not define equal-area cells.
+For example, with projected coordinates `x_m` and `y_m` in metres:
+
+```r
+sensitivity <- declustering_sensitivity(
+  ag_main, cell_sizes = c(5000, 10000, 20000),
+  x_col = "x_m", y_col = "y_m"
+)
+sensitivity
+```
+
+Each occupied cell receives equal total influence, shared among its samples.
+Weights are averaged over 100 deterministic grid placements. The table compares
+weighted censored lognormal estimates against an unweighted estimate on the same
+usable chemistry/coordinate subset. Invalid chemistry and missing coordinates
+are excluded from both sides of that comparison. Choose cell sizes using sampling
+spacing and geological context; inspect several scales rather than selecting a
+size solely because it gives the lowest concentration.
+
+The table also compares the raw `exact_fraction` with `weighted_exact_fraction`.
+`weighted_left_fraction` and `weighted_right_fraction` complete the shares of
+declustering weight across observation types. Many exact records in a dense
+cluster may carry little total weight. When almost all weight is censored,
+the fitted mean and spread can be sensitive despite successful convergence.
+These fractions describe the usable subset; they are not reliability tests or
+counts of independent information. They are missing when no rows are usable.
+
+For direct control, calculate weights on your usable analysis subset and pass
+them to the estimator:
+
+```r
+analysis_data$spatial_weight <- cell_declustering_weights(
+  analysis_data, x_col = "x_m", y_col = "y_m", cell_size = 10000
+)
+fit_cen_lognorm(analysis_data, weight_col = "spatial_weight")
+```
+
+The weighted estimator retains left- and right-censoring intervals. Its confidence
+limits are intentionally missing: spatial uncertainty needs a separate procedure,
+such as a validated spatial block bootstrap. `weight_effective_n` describes weight
+imbalance and is not a count of independent locations. Declustering reduces the
+influence of densely sampled areas; it does not establish concentrations in
+unsampled terrain or remove every source of preferential sampling bias.
+
+## Inspecting distribution shape with censoring
+
+`censored_cdf_bounds()` describes how much of the empirical cumulative
+distribution remains unresolved by detection limits. It preserves both censoring
+directions and accepts optional observation weights. For one reviewed sampling
+medium/domain, with concentration thresholds in the same units as the data:
+
+```r
+shape <- censored_cdf_bounds(
+  analysis_data, thresholds = 10^seq(-1, 4, length.out = 100),
+  weight_col = "spatial_weight"
+)
+shape$support
+plot_censored_cdf_bounds(shape, unit_label = "ug/kg")
+```
+
+At each threshold, the plot shows the smallest and largest cumulative fractions
+compatible with the observed values and limits. It fits no model and replaces
+no censored value. Bounds can be calculated even when a concentration fit is
+unavailable. Empty usable subsets have missing bounds.
+
+These describe the supplied observations; they are not confidence bands for a
+population. Coincident bounds in fully observed data do not remove sampling or
+spatial uncertainty. Inspect distributions within sensible domains and compare
+the fitted/nonparametric CDF view from
+`plot_lognormal_fit(..., show_nonparametric = TRUE)` where fitting is appropriate.
+A model CDF outside an empirical bound is not an automatic rejection rule.
+Small-sample non-rejection and a relative AIC winner also do not establish model
+adequacy. No ordinary iid normality-test p-value is assigned to these weighted,
+censored records.
+
+## Experimental spatial uncertainty
+
+`spatial_block_bootstrap()` is a prototype for assessing uncertainty within one
+medium and spatial/geological domain. It samples occupied square blocks with
+replacement, recalculates declustering weights, preserves each block's draw
+multiplicity, and refits the censored model. Declustering cell width and bootstrap
+block width are separate choices. The following widths are illustrative:
+
+```r
+boot <- spatial_block_bootstrap(
+  analysis_data, x_col = "x_m", y_col = "y_m",
+  cell_size = 10000, block_size = 50000,
+  n_boot = 999, seed = 42
+)
+boot$summary
+boot$replicates
+```
+
+The returned percentile limits have status `experimental_interval`. They are
+not automatically added to existing estimates or all-element workflows.
+Too few occupied blocks, a failed point fit, or excessive failed bootstrap fits
+suppress the limits. Failed replicates remain visible. A seeded call restores
+the caller's random-number state.
+
+Block size and origin need sensitivity checks; enough blocks and successful
+fits do not establish correct interval coverage. The procedure conditions on
+sampled blocks and cannot correct all preferential sampling mechanisms or infer
+unsampled terrain. Irregular sampling and correlation across block boundaries
+can invalidate simple spatial bootstrap approaches; see
+[Lahiri and Zhu (2006)](https://doi.org/10.1214/009053606000000551).
+The pilot study in `scripts/analysis/validate_spatial_bootstrap.R` completed 100
+datasets in each of five settings with 199 resamples per dataset. Observed
+coverage of nominal 95% intervals was 88%, 91%, and 94% for the three
+independent-site density settings, and 73% versus 82% for correlated sites with
+smaller versus larger blocks. All fits converged. These results show that the
+prototype is not calibrated for routine use; it remains experimental and is not
+applied to the full USGS results. See the development log for the saved report.
+
+A subsequent benchmark study reproduced exact site-log-mean resampling and used
+independent confirmation seeds. With 3,000 uncensored confirmation datasets,
+analytic t and studentized intervals achieved about 95% coverage; the current
+percentile method achieved 94.6%. Censored independent-site coverage was 96–96.5%
+in 200 datasets per setting, while correlated-site coverage remained 77–85%.
+Basic and normal log-scale formulas did not resolve the spatial shortfall.
+The main unresolved issue in those scenarios was underestimated uncertainty from
+dependence across blocks. See the development log for the diagnostic report;
+these findings do not validate routine intervals for irregular NGDB sampling.
+
+A further independently seeded study used irregular sites and omitted 80 of
+144 candidate sites. Confirmation coverage was 96% under independent uniform
+selection and 87% with spatial correlation. Under a specified mechanism favoring
+high-concentration sites, the mean estimate was about 75.7 for a target of 50,
+and target coverage was 0% in 100 confirmation datasets. This is a synthetic
+selection mechanism, not a quantified estimate of NGDB bias. It demonstrates
+that declustering observed records cannot reconstruct omitted low-concentration
+sites. Defining a target population and investigating the sampling design or an
+explicit spatial/selection model are necessary before routine area inference.
+
+Separate research scripts now evaluate score-based spatial calibration with
+declustering weights, including surveys whose locations and weights change.
+In synthetic tests the weighted linear-Gaussian calculation met the 95% coverage
+target within its assumed range of spatial dependence. The censored transfer
+failed under heavy censoring: confirmation
+coverage was about 86–94%, with downward point-estimate bias. Moderate-censoring
+coverage was about 96–99%. These are restricted simulation results, not validated
+USGS confidence intervals. The calibration routines remain outside the public
+API, and weighted routine confidence limits remain missing. See the development
+log for assumptions, independent confirmation, and recorded failures.
 
 ## Detection-limit (censoring) conventions
 
@@ -76,10 +348,17 @@ system.file("examples", "ag_hotspot_map.R", package = "geoCensor")
 | Input | Meaning |
 |-------|---------|
 | `qvalue` < 0 | left-censored (non-detect) at LOD = `abs(qvalue)` |
-| `qvalue` ending `.1111` | right-censored at the upper limit of determination |
-| `qualifier` `L` or `<` | left-censored | 
+| `qvalue` ending `.1111` or `.11111` | right-censored at the upper limit of determination |
+| `qualifier` `L`, `N`, or `<` | left-censored |
 | `qualifier` `G` or `>` | right-censored |
 | `qvalue` > 0 | detected value |
+
+Some NGDB CSV exports round `qvalue` to two decimal places, hiding the
+upper-censoring suffix. When the first best-ranked value in `summary` contains
+an explicit suffix and rounds to the reported qvalue, the builders recover
+that upper limit. The original `qvalue_raw` is preserved and `censoring_source`
+records the recovery. Ordinary values ending in `.11` are not inferred to be
+censored from qvalue alone.
 
 The MLE then represents left-censored observations as the interval `(0, LOD]`,
 right-censored as `(ULOD, Inf)`, and detections as exact, fitting a lognormal by
@@ -101,6 +380,8 @@ right-censored as `(ULOD, Inf)`, and detections as exact, fitting a lognormal by
 - `mle_by_state()` — censoring-aware lognormal geomeans by state
 - `compare_censored_distributions()` — AIC comparison of censored parametric distributions
 - `spatial_coverage_by_state()` — coordinate counts and occupied grid cells by state
+- `cell_declustering_weights()` — weights sharing influence within occupied projected cells
+- `declustering_sensitivity()` — weighted censored estimates across cell sizes
 - `add_substitution()` — LOD/2 and upper-limit substitution values
 - `fit_lognorm_with_quants()` — censoring-aware lognormal MLE with fitted quantiles
 - `robust_cor_table()` — bootstrap Spearman correlations of metals vs a target
@@ -122,7 +403,7 @@ The geoCensor package **does not include geochemical data**. Instead, it is desi
 If you use geoCensor, please cite it. The repository includes citation metadata in `CITATION.cff`:
 
 > Edwards, R. (2026). *geoCensor: Censoring-Aware Analysis of USGS National
-> Geochemical Database Data* (version 0.1.0). https://github.com/diskoisland/geoCensor
+> Geochemical Database Data* (version 1.1.0). https://github.com/diskoisland/geoCensor
 
 ## License
 

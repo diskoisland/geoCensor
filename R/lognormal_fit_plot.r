@@ -5,49 +5,9 @@ plot_censored_intervals <- function(df,
                                     col_right_flag,
                                     col_right_limit,
                                     caller) {
-  req <- c(
-    col_detected, col_left_flag, col_left_limit,
-    col_right_flag, col_right_limit
-  )
-  missing <- req[!req %in% names(df)]
-  if (length(missing) > 0) {
-    stop(caller, ": Missing columns: ", paste(missing, collapse = ", "))
-  }
-
-  detected_val <- df[[col_detected]]
-  left_flag <- df[[col_left_flag]]
-  right_flag <- df[[col_right_flag]]
-  left_limit <- df[[col_left_limit]]
-  right_limit <- df[[col_right_limit]]
-
-  left_cen <- as.logical(left_flag)
-  right_cen <- as.logical(right_flag)
-  left_cen[is.na(left_cen)] <- FALSE
-  right_cen[is.na(right_cen)] <- FALSE
-
-  is_left <- left_cen & is.finite(left_limit) & left_limit > 0
-  is_right <- right_cen & is.finite(right_limit) & right_limit > 0
-  is_exact <- is.finite(detected_val) & detected_val > 0 &
-    !is_left & !is_right
-
-  lower <- upper <- rep(NA_real_, nrow(df))
-  lower[is_left] <- 0
-  upper[is_left] <- left_limit[is_left]
-  lower[is_right] <- right_limit[is_right]
-  upper[is_right] <- Inf
-  lower[is_exact] <- detected_val[is_exact]
-  upper[is_exact] <- detected_val[is_exact]
-
-  ok <- is_left | is_right | is_exact
-
-  list(
-    lower = lower,
-    upper = upper,
-    ok = ok,
-    n_total = sum(ok),
-    n_left = sum(is_left[ok]),
-    n_right = sum(is_right[ok]),
-    n_exact = sum(is_exact[ok])
+  .censored_intervals(
+    df, col_detected, col_left_flag, col_left_limit,
+    col_right_flag, col_right_limit, caller
   )
 }
 
@@ -70,6 +30,10 @@ plot_censored_intervals <- function(df,
 #' @param plot_type Plot type: `"cdf"` (default) or `"density"`.
 #' @param bins Number of histogram bins for exact detections. Used only when
 #'   `plot_type = "density"`.
+#' @param show_detects If `TRUE`, show exact detections as a detected-only
+#'   empirical CDF scatter in the CDF view.
+#' @param show_nonparametric If `TRUE`, show a nonparametric interval-censored
+#'   CDF estimate from [survival::survfit()] in the CDF view.
 #' @param show_censored If `TRUE`, plot rugs for left- and right-censoring
 #'   limits.
 #'
@@ -86,6 +50,8 @@ plot_lognormal_fit <- function(
     title = "Censored lognormal fit",
     plot_type = c("cdf", "density"),
     bins = 30,
+    show_detects = TRUE,
+    show_nonparametric = FALSE,
     show_censored = TRUE
 ) {
   plot_type <- match.arg(plot_type)
@@ -171,6 +137,47 @@ plot_lognormal_fit <- function(
 
   exact_df <- tibble::tibble(value = exact_vals)
   exact_df <- dplyr::mutate(exact_df, log10_value = log10(.data$value))
+  exact_cdf_df <- exact_df[order(exact_df$log10_value), , drop = FALSE]
+  exact_cdf_df$detected_only_cdf <- stats::ppoints(nrow(exact_cdf_df))
+
+  nonparametric_df <- NULL
+  if (identical(plot_type, "cdf") && isTRUE(show_nonparametric)) {
+    nonparametric_input <- tibble::tibble(
+      lower = intervals$lower[intervals$ok],
+      upper = intervals$upper[intervals$ok]
+    )
+    nonparametric_input <- dplyr::count(
+      nonparametric_input,
+      .data$lower,
+      .data$upper,
+      name = "weight"
+    )
+
+    nonparametric_fit <- survival::survfit(
+      survival::Surv(
+        nonparametric_input$lower,
+        nonparametric_input$upper,
+        type = "interval2"
+      ) ~ 1,
+      weights = nonparametric_input$weight
+    )
+
+    nonparametric_df <- tibble::tibble(
+      value = nonparametric_fit$time,
+      fitted_cdf = 1 - nonparametric_fit$surv
+    )
+    nonparametric_df <- dplyr::filter(
+      nonparametric_df,
+      is.finite(.data$value),
+      .data$value > 0,
+      is.finite(.data$fitted_cdf)
+    )
+    nonparametric_df <- dplyr::mutate(
+      nonparametric_df,
+      log10_value = log10(.data$value)
+    )
+  }
+
   fit_label <- sprintf(
     "GM = %.3g %s\n95%% CI: %.3g-%.3g",
     gm,
@@ -190,6 +197,34 @@ plot_lognormal_fit <- function(
   p <- ggplot2::ggplot()
 
   if (identical(plot_type, "cdf")) {
+    if (show_detects && nrow(exact_cdf_df) > 0) {
+      p <- p +
+        ggplot2::geom_point(
+          data = exact_cdf_df,
+          ggplot2::aes(
+            x = .data$log10_value,
+            y = .data$detected_only_cdf
+          ),
+          color = "grey35",
+          alpha = 0.12,
+          size = 0.65,
+          inherit.aes = FALSE
+        )
+    }
+
+    if (!is.null(nonparametric_df) && nrow(nonparametric_df) > 0) {
+      p <- p +
+        ggplot2::geom_step(
+          data = nonparametric_df,
+          ggplot2::aes(x = .data$log10_value, y = .data$fitted_cdf),
+          color = "grey10",
+          linewidth = 0.65,
+          alpha = 0.8,
+          direction = "hv",
+          inherit.aes = FALSE
+        )
+    }
+
     p <- p +
       ggplot2::geom_line(
         data = curve_df,
@@ -231,7 +266,11 @@ plot_lognormal_fit <- function(
       ) +
       ggplot2::labs(
         subtitle = subtitle,
-        caption = "GM is the fitted lognormal median, shown at 50% cumulative probability."
+        caption = if (show_nonparametric) {
+          "Blue: lognormal CDF. Black step: nonparametric censored CDF. Gray: detections only."
+        } else {
+          "GM = exp(meanlog); gray points are exact detections only."
+        }
       )
   } else {
     p <- p +

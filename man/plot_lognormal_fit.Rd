@@ -15,6 +15,8 @@ plot_lognormal_fit(
   title = "Censored lognormal fit",
   plot_type = c("cdf", "density"),
   bins = 30,
+  show_detects = TRUE,
+  show_nonparametric = FALSE,
   show_censored = TRUE
 )
 }
@@ -39,6 +41,12 @@ plot_lognormal_fit(
 
 \item{bins}{Number of histogram bins for exact detections. Used only when
 \code{plot_type = "density"}.}
+
+\item{show_detects}{If \code{TRUE}, show exact detections as a detected-only
+empirical CDF scatter in the CDF view.}
+
+\item{show_nonparametric}{If \code{TRUE}, show a nonparametric interval-censored
+CDF estimate from \code{\link[survival:survfit]{survival::survfit()}} in the CDF view.}
 
 \item{show_censored}{If \code{TRUE}, plot rugs for left- and right-censoring
 limits.}
