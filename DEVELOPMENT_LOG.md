@@ -12,8 +12,9 @@ lognormal fit plots). Final publication is limited to an explicit file allowlist
 The exact 1.1.0 candidate now passes local source build and R CMD check (Status:
 OK), including vignette creation/rebuilding. All 77 tests / 410 expectations
 pass without failures, errors, warnings or skips. Installed single/all-element
-examples also pass on synthetic data. Remote cross-platform checks remain a
-separate pre-tag gate; see [the release checklist](RELEASE_CHECKLIST.md).
+examples also pass on synthetic data. All five remote cross-platform jobs passed on the source candidate commit
+`c7845c3`; the checklist links the workflow result and draft pull request. Any
+subsequent head still needs green checks before tagging.
 
 Completed package work includes sampling-support/method audits, multi-element
 USGS analysis, information review flags and a worked vignette. Spatial research
@@ -2197,3 +2198,30 @@ main matches starting commit 911f8aadb294b825ed492eb5393f1a71688c8462 and the
 intended codex/release-1.1.0 branch did not yet exist when checked. Publication
 will use the verified allowlist and a review branch, with remote checks before
 any tag. No merge/tag/release is authorized by this preparation record.
+
+
+## V1.1 review branch pushed and matrix passed — November 1, 2026
+
+Committed only the explicit 180-file publication allowlist and pushed
+`codex/release-1.1.0`. Source candidate commit is
+`c7845c3bc1568f2078a9e135d0da0e756113c8ca`; all allowlisted committed blobs were
+verified byte-for-byte against the publication manifest before pushing. The
+commit changes 140 files; unchanged allowlisted files are also verified.
+Unrelated untracked files and original data remain local and intact. Remote
+main was unchanged at publication; no merge, tag or release was created.
+
+Opened [draft PR #1](https://github.com/diskoisland/geoCensor/pull/1).
+All five jobs in [the source-candidate workflow](https://github.com/diskoisland/geoCensor/actions/runs/41385826608)
+passed: macOS/current R, Windows/current R, Ubuntu/current R, Ubuntu/oldrel-1
+and Ubuntu/devel. The devel job took 24m31s, chiefly dependency setup (about
+23 minutes), then passed its package check. This delay was not a failed check.
+Saved the complete job/step result in the local release-validation artifacts.
+The initial commit appeared delayed in the cloud-backed checkout, completed
+successfully, and was verified before push; no failed commit or data reset was
+used. No GitHub credential change was needed.
+
+A final documentation-only commit records the actual publication and matrix
+outcome in this log and RELEASE_CHECKLIST.md. All 97 checked package source
+files and the checked archive SHA-256 remain identical. Head checks must still
+be green before tagging; this record is not a release announcement. The draft
+is ready for review, and spatial confidence limits remain experimental.

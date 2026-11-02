@@ -29,3 +29,18 @@ Checked source archive SHA-256:
 The checked archive has 101 files, generated from 97 explicitly selected source
 files. The repository publication allowlist also includes CI, citation metadata
 and development research sources. No tag or release is created by this step.
+
+## Published review and cross-platform result
+
+Draft [pull request #1](https://github.com/diskoisland/geoCensor/pull/1) contains
+candidate commit `c7845c3bc1568f2078a9e135d0da0e756113c8ca` on
+`codex/release-1.1.0`. All five jobs in the
+[candidate workflow run](https://github.com/diskoisland/geoCensor/actions/runs/41385826608)
+passed: macOS release, Windows release, Ubuntu release, Ubuntu oldrel-1 and
+Ubuntu devel. The development-R job spent most of its time installing
+dependencies, then passed the package check.
+
+This validation-record update changes only this checklist and the development
+log. All 97 checked package source files and the archive checksum above remain
+unchanged. Any new head commit still needs green checks before tagging. No
+merge, tag or release has been created; the draft remains available for review.
