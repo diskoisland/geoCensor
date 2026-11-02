@@ -58,10 +58,37 @@ test_that("plot_lognormal_fit still supports density view", {
   p <- plot_lognormal_fit(df, plot_type = "density")
 
   expect_s3_class(p, "ggplot")
-  expect_equal(
+  expect_match(
     p$labels$caption,
-    "Histogram shows exact detections only; fitted curve uses exact and censored observations."
+    "Histogram shows exact detections only; fitted curve uses exact and censored observations.",
+    fixed = TRUE
   )
+})
+
+test_that("plots retain usable-method counts with custom columns", {
+  df <- tibble::tibble(val = c(1:8, 0), lflag = FALSE, llim = NA_real_,
+    rflag = FALSE, rlim = NA_real_, amethod = c("ES_SQ", "ES_H2O_P",
+      "UNKNOWN", NA, rep("AES_HF", 4), "ES_SQ"))
+  for (view in c("cdf", "density")) {
+    p <- plot_lognormal_fit(df, "val", "lflag", "llim", "rflag", "rlim", plot_type = view)
+    expect_match(p$labels$caption, "Known semiquantitative codes: 2/8 usable records", fixed = TRUE)
+    expect_match(p$labels$caption, "Missing/unspecified methods: 2; other methods unreviewed: 4", fixed = TRUE)
+    expect_match(p$labels$caption, "spatial confidence limits remain experimental", fixed = TRUE)
+    expect_silent(ggplot2::ggplot_build(p))
+  }
+})
+
+test_that("plots reject warnings and invalid numerical fits", {
+  df <- tibble::tibble(detected_val = 1:8, left_cen = FALSE, left_limit = NA_real_,
+    right_cen = FALSE, right_limit = NA_real_)
+  for (replacement in list(
+    function(...) { warning("did not converge"); NULL },
+    function(...) stop("numerical failure"),
+    function(...) structure(list(coefficients = NA_real_, scale = 1), class = "survreg")
+  )) {
+    testthat::local_mocked_bindings(survreg = replacement, .package = "survival")
+    expect_error(plot_lognormal_fit(df), "failed fit; no fitted curve available", fixed = TRUE)
+  }
 })
 
 test_that("plot_lognormal_fit supports custom censoring column names", {

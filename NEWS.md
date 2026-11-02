@@ -1,3 +1,78 @@
+# geoCensor development 1.1.0.9003
+
+* Add optional `analyze_elements(..., audit_method_overlap = TRUE)` to append
+  element/domain-labelled availability, method coverage and method-pair overlap
+  tables. Requires projected coordinates and cell sizes; uses the supplied
+  n_offsets. Existing estimates, weights and six/seven result components remain
+  unchanged. Can be combined with method stratification independently.
+* Add `--method-overlap` to the all-element command, exporting three CSV tables
+  and RDS components when requested. The command now requires installed version
+  1.1.0.9003 or newer and rejects missing spatial arguments or duplicate switches.
+  Missing spatial comparisons remain NA; cell overlap is not paired-sample or
+  analytical-agreement evidence, and placement ranges are not confidence limits.
+
+# geoCensor development 1.1.0.9002
+
+* Add `method_spatial_overlap()` to audit occupied/shared grid cells across
+  analytical-method labels and spatial scales using a common grid with shifted
+  placements. Return record eligibility, method coverage and pairwise Jaccard
+  summaries without fitting a concentration model or supplying p-values.
+* Retain missing/unspecified methods, excluded chemistry and unlocated records
+  explicitly. Comparisons with unavailable spatial data remain NA; observed
+  zero overlap requires data for both methods. Grid-placement ranges are
+  sensitivity summaries, not confidence limits or evidence of matched samples.
+* Preserve distinct representable integer cell indices in the large-grid string
+  fallback used by declustering and overlap audits. Default numeric-to-text
+  rounding could previously merge neighboring cells at very large grid indices.
+
+# geoCensor development 1.1.0.9001
+
+* Add optional `analyze_elements(..., stratify_methods = TRUE)` summaries by
+  normalized analytical-method code within each element/domain. The six existing
+  components and their numerical results stay unchanged; an additional
+  `method_estimates` table retains counts, fit outcomes and review information.
+* Preserve missing/unspecified method buckets and unusable/insufficient/failed
+  groups explicitly. These descriptive comparisons do not estimate analytical
+  bias or establish comparability across sampling locations or procedures.
+* Add `--stratify-methods` to installed single/all-element commands, exporting
+  `method_estimates.csv` and the corresponding RDS component when requested.
+  Development workflows now require version 1.1.0.9001 or newer.
+* Installed commands require a new or empty output directory. Existing results
+  are preserved, preventing stale optional tables or plots from appearing in
+  a subsequent run with different options or unavailable fits.
+
+# geoCensor development 1.1.0.9000
+
+* Retain analytical-method review in empirical CDF support summaries, CDF plot
+  captions and every candidate distribution-comparison row. Invalid or zero-weight
+  records are excluded from CDF used counts. Coincident bounds and AIC rankings
+  do not establish measurement precision. Numerical results remain unchanged.
+* Plot older saved CDF results with method review explicitly unavailable when
+  their support metadata predates these fields; do not reconstruct missing counts.
+* Carry method-review counts/status through direct lognormal estimates, fitted
+  quantile summaries and state summaries, including insufficient/failed fits.
+  Review columns are appended; established numeric columns/order are preserved.
+  Custom censoring columns and zero-weight exclusions use the actual fit subset.
+* Retain method counts and independence assumptions in lognormal plot captions.
+  Reject numerical fitting warnings/errors or invalid parameters before plotting,
+  consistently with the numerical estimators.
+
+* Add `flag_analytical_methods()` and propagate method review through long
+  observations, batch estimates, declustering summaries and installed CLI exports.
+  Documented USGS semiquantitative codes ES_SQ and ES_H2O_P receive review flags;
+  missing, unspecified and unreviewed method information remains unresolved/NA.
+* Add a `methods` table to `analyze_elements()` with per-code input and unweighted
+  fit-subset counts, review status and provenance. Method concerns are separate
+  from chemistry validity and count-based review flags. Numerical estimates,
+  censoring fields and record inclusion are unchanged; no class bounds are guessed.
+* Declustering method counts use the same valid chemistry/coordinate subset as
+  each fit, rather than borrowing counts from the unweighted estimate.
+* Single-element CLI output now uses the shared public batch workflow and exports
+  `methods.csv`; estimate/model tables gain additive element/count/review columns.
+* Clarify that n_exact is an uncensored coding count, not verified measurement
+  precision. Correct the vignette's soil horizon-zone example to `sample_zone`.
+* Keep installed-source fallback dependencies complete for the Utah dust example.
+
 # geoCensor 1.1.0
 
 Released November 1, 2026. This version focuses on USGS National Geochemical

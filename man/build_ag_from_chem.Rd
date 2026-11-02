@@ -24,6 +24,9 @@ If \code{summary} contains an explicit upper-censoring suffix in its first
 (best-ranked) analysis and that value rounds to the reported qvalue, its
 censoring information is recovered. \code{qvalue_raw} retains the original value;
 \code{censoring_source} records whether the limit came from summary or qvalue.
+\code{\link[=flag_analytical_methods]{flag_analytical_methods()}} adds separate method-review fields. Method
+concerns do not change \code{validation_status}, censoring fields or values;
+semiquantitative reporting-class bounds are not inferred.
 }
 \description{
 Build Ag (or other element) censoring fields from a chemistry data frame

@@ -32,7 +32,11 @@ Zero-weight rows are excluded. With weights, confidence limits are omitted:
 ordinary model intervals do not account for spatial sampling dependence.}
 }
 \value{
-A tibble with n_total, n_left, n_right, geomean, ci_low, ci_high, method.
+A tibble with n_total, n_left, n_right, geomean, ci_low, ci_high, method,
+followed by analytical-method review counts and status (see
+\code{\link[=flag_analytical_methods]{flag_analytical_methods()}}). These use \code{amethod} when supplied; absent method
+information remains unresolved. Used counts describe eligible fit inputs,
+including insufficient or failed fits, and exclude zero-weight rows.
 }
 \description{
 Fit a lognormal with left and right censoring

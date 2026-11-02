@@ -122,3 +122,10 @@ test_that("declustering reports censoring weight rather than raw record fraction
   expect_equal(censored$weighted_left_fraction, 1)
   expect_equal(censored$weighted_right_fraction, 0)
 })
+
+test_that('large cell indices retain distinct cells in the string-key fallback', {
+ x <- tibble::tibble(x=c(0,1,4e15,4e15+1),y=c(0,1,4e15,4e15+1))
+ weights <- cell_declustering_weights(x,'x','y',1,n_offsets=1)
+ expect_equal(weights,rep(.25,4))
+ expect_equal(sum(weights),1)
+})

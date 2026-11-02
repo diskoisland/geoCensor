@@ -52,7 +52,7 @@ CDF estimate from \code{\link[survival:survfit]{survival::survfit()}} in the CDF
 limits.}
 }
 \value{
-A ggplot object.
+A ggplot object with method-review counts in its caption.
 }
 \description{
 Fits the same interval-censored lognormal model used by
@@ -60,4 +60,14 @@ Fits the same interval-censored lognormal model used by
 function or the fitted density on the log10 concentration scale. The
 geometric mean and 95 percent confidence interval are marked on the
 concentration axis.
+}
+\details{
+Uses the same numerical fit checks as \code{\link[=fit_cen_lognorm]{fit_cen_lognorm()}}. A warning,
+error or invalid parameter estimate stops plotting with a failed-fit error.
+Captions retain analytical-method review counts for the usable observations,
+using \code{amethod} when supplied. Zero recognized semiquantitative codes does
+not establish quantitative precision. Exact detections describe censoring
+codes, not verified measurement precision. Model confidence limits assume
+independent observations and an appropriate lognormal model; spatial
+confidence limits remain experimental.
 }

@@ -26,7 +26,11 @@
 #' or preferential sampling; spatial confidence limits remain experimental.
 #' Minimum observation counts are computational guards, not reliability guarantees.
 #'
-#' @return A tibble with n_total, n_left, n_right, geomean, ci_low, ci_high, method.
+#' @return A tibble with n_total, n_left, n_right, geomean, ci_low, ci_high, method,
+#'   followed by analytical-method review counts and status (see
+#'   [flag_analytical_methods()]). These use `amethod` when supplied; absent method
+#'   information remains unresolved. Used counts describe eligible fit inputs,
+#'   including insufficient or failed fits, and exclude zero-weight rows.
 #'
 #' @references
 #' Helsel, D. R. (1990). Less than obvious: Statistical treatment of data below
@@ -66,9 +70,11 @@ fit_cen_lognorm <- function(
   lower <- intervals$lower
   upper <- intervals$upper
   ok <- intervals$ok
+  method_summary <- .summarize_analytical_methods(df, intervals = intervals, include_methods = FALSE)$summary
+  finish <- function(out) dplyr::bind_cols(out, method_summary)
 
   if (n_ok < 6 || n_exact < 2) {
-    return(tibble::tibble(
+    return(finish(tibble::tibble(
       n_total = n_ok,
       n_left  = n_left,
       n_right = n_right,
@@ -76,7 +82,7 @@ fit_cen_lognorm <- function(
       ci_low  = NA_real_,
       ci_high = NA_real_,
       method  = "insufficient_data"
-    ))
+    )))
   }
   
   # Normalize to mean one over usable observations; point estimates are invariant
@@ -85,18 +91,18 @@ fit_cen_lognorm <- function(
   fit_weights <- fit_weights / sum(fit_weights) * n_ok
   fit <- .fit_validated_censored_lognormal(lower[ok], upper[ok], fit_weights)
   if (is.null(fit)) {
-    return(tibble::tibble(
+    return(finish(tibble::tibble(
       n_total = n_ok, n_left = n_left, n_right = n_right,
       geomean = NA_real_, ci_low = NA_real_, ci_high = NA_real_,
       method = "failed_fit"
-    ))
+    )))
   }
 
   meanlog    <- unname(stats::coef(fit)[1])
   se_meanlog <- sqrt(stats::vcov(fit)[1, 1])
   z          <- stats::qnorm(0.975)
   
-  tibble::tibble(
+  finish(tibble::tibble(
     n_total = n_ok,
     n_left  = n_left,
     n_right = n_right,
@@ -104,7 +110,7 @@ fit_cen_lognorm <- function(
     ci_low  = if (is.null(weight_col)) exp(meanlog - z * se_meanlog) else NA_real_,
     ci_high = if (is.null(weight_col)) exp(meanlog + z * se_meanlog) else NA_real_,
     method  = if (is.null(weight_col)) "survreg_lognormal_MLE_L+R" else "weighted_survreg_lognormal"
-  )
+  ))
 }
 
 

@@ -51,7 +51,8 @@ metadata$country <- "United States"
 metadata$x_m <- metadata$easting * 10000
 metadata$y_m <- metadata$northing * 10000
 metadata$depth <- rep(c("0-10 cm", "10-20 cm", "0-10 cm"), nrow(sites))
-metadata$horizon <- rep(c("A", "B", "A"), nrow(sites))
+metadata$sample_zone <- rep(c("A", "B", "A"), nrow(sites))
+metadata$horizon <- "well defined"
 metadata$mesh_size <- rep(c("<80 mesh", "<80 mesh", "<200 mesh"), nrow(sites))
 
 make_element <- function(element, center, lod, upper) {
@@ -73,12 +74,29 @@ The example contains multiple supports at each site. That is a reason to review
 comparability, not to assume that all samples at the same coordinates are
 interchangeable.
 
+## Review reported analytical methods
+
+The illustrative method label above has not been reviewed and must not be
+interpreted as quantitative merely because it is nonblank. This small metadata
+example shows documented semiquantitative codes and unresolved methods:
+
+```{r method-review}
+flag_analytical_methods(data.frame(amethod = c("ES_SQ", "ES_H2O_P", "unreviewed", NA)))
+```
+
+The review preserves reported values and validity status. It does not supply
+numeric class bounds or an otherwise missing reporting design. Uncensored
+coding is not the same as verified measurement precision. Batch results include
+a separate `methods` table; method concerns do not disappear when count-based
+review thresholds clear. Declustering counts use the observations with usable
+chemistry and coordinates for that fit. No routine spatial limits are added.
+
 ## Audit sampling support and joins
 
 ```{r audit}
 support <- sampling_support_audit(
   metadata, group_cols = "state",
-  support_cols = c("depth", "horizon", "mesh_size"),
+  support_cols = c("depth", "sample_zone", "horizon", "mesh_size"),
   x_col = "x_m", y_col = "y_m"
 )
 support$fields
@@ -103,7 +121,7 @@ the builder recovers it while retaining the original reported value.
 
 ```{r join}
 ag_main <- join_soil_main(ag, metadata,
-  extra_cols = c("state", "country", "x_m", "y_m", "depth", "horizon", "mesh_size"))
+  extra_cols = c("state", "country", "x_m", "y_m", "depth", "sample_zone", "horizon", "mesh_size"))
 attr(ag_main, "join_audit")
 ```
 
@@ -121,7 +139,7 @@ NGDB filtering rule.
 
 ```{r estimation}
 selected_ids <- metadata$lab_id[
-  metadata$depth == "0-10 cm" & metadata$horizon == "A" & metadata$mesh_size == "<80 mesh"
+  metadata$depth == "0-10 cm" & metadata$sample_zone == "A" & metadata$mesh_size == "<80 mesh"
 ]
 selected_chemistry <- chemistry[chemistry$lab_id %in% selected_ids, ]
 results <- analyze_elements(
@@ -140,6 +158,80 @@ are added without changing or filtering estimates. By default fewer than 10
 exact observations or less than 5% exact observations triggers review. These
 are configurable conventions, not validated statistical cutoffs, and a cleared
 flag does not establish model adequacy or spatial independence.
+Distribution-comparison rows also retain analytical-method review counts/status,
+even when fitting is unavailable. A relative AIC winner does not clear unknown
+or semiquantitative measurement concerns.
+
+## Compare recorded methods within the selected domain
+
+An optional sensitivity table separates normalized method labels while keeping
+the pooled outputs unchanged. To illustrate the interface, assign two synthetic
+labels to the example's existing observations:
+
+```{r method-strata}
+method_example <- selected_chemistry
+method_example$amethod <- ifelse(as.integer(method_example$lab_id) %% 2L == 0L,
+  "illustrative_method_a", "illustrative_method_b")
+method_example$summary <- paste(sub(",.*$", "", method_example$summary),
+  method_example$amethod, sep = ", ")
+method_check <- analyze_elements(method_example, main_df = metadata,
+  group_cols = "state", stratify_methods = TRUE)
+head(method_check$method_estimates[c("element", "state", "method_code",
+  "n_input", "n_total", "geomean", "method_information", "review_status")])
+```
+
+These illustrative labels are unreviewed, and their assignment does not change
+the reported values. The table describes unweighted chemistry subsets, including
+records without usable coordinates. Missing method labels remain an unresolved
+NA bucket; UNKNOWN is separate and does not identify a shared procedure. A
+difference between method summaries can reflect geography, geology, sampling
+support or selection as well as analytical differences. This is not a calibration
+or an estimate of analytical bias. Model confidence limits retain their ordinary
+independence assumptions; spatial confidence limits remain experimental.
+
+## Review geographic overlap before interpreting method differences
+
+Use one element and the selected sampling support/domain. Here the two synthetic
+method labels can be checked on the illustrative Wisconsin Ag observations:
+
+```{r method-overlap}
+method_geo <- join_soil_main(build_element(method_example, "Ag"), metadata,
+  extra_cols = c("state", "x_m", "y_m"))
+method_geo <- method_geo[method_geo$state == "WI", ]
+overlap <- method_spatial_overlap(method_geo,
+  cell_sizes = c(5000, 10000, 20000), x_col = "x_m", y_col = "y_m")
+overlap$support
+overlap$pairs[c("cell_size", "method_a", "method_b", "n_spatial_a", "n_spatial_b",
+  "shared_cells_mean", "jaccard_min", "jaccard_mean", "jaccard_max")]
+```
+
+Jaccard is the fraction of the union of occupied cells shared by the two labels.
+Both labels use the same grid at each placement; the reported range describes
+grid-placement sensitivity, not a confidence interval. An unlocated or invalid-
+only method has missing comparison metrics rather than zero overlap. Missing
+method labels remain explicit in the method coverage table and do not enter
+named pairs. Shared cells do not establish paired samples, matching physical
+support, analytical agreement or independence. No concentration or method-bias
+model is fitted, and nothing is inferred for unsampled terrain.
+
+The same audit can be requested for every element and state in the selected
+example, with optional method-specific estimates kept as a separate table:
+
+```{r batch-method-overlap}
+geographic <- analyze_elements(method_example, main_df = metadata,
+  group_cols = "state", cell_sizes = c(5000, 10000, 20000),
+  x_col = "x_m", y_col = "y_m", n_offsets = 2,
+  stratify_methods = TRUE, audit_method_overlap = TRUE)
+geographic$method_overlap_support
+head(geographic$method_coverage)
+head(geographic$method_overlap)
+```
+
+All original components remain unchanged. The three appended audit tables are
+labelled by element/domain, use the supplied grid placements, and retain
+unavailable comparisons as missing. The batch default n_offsets is 10 (100
+placements), whereas the standalone audit defaults to 2. These optional summaries
+do not select analytical methods, change concentrations or add spatial limits.
 
 ## Assess sensitivity to clustering
 
@@ -186,8 +278,11 @@ Each vertical range shows the possible cumulative fraction at that threshold,
 given the exact values, censoring limits and weights. It does not interpolate
 between thresholds, replace nondetects with a fraction of their limits, or fit
 a lognormal distribution. The bounds describe this empirical dataset; they
-are not population confidence bands. Sampling and spatial uncertainty remain
-even when bounds coincide. A state boundary alone does not establish a
+are not population confidence bands. The support table and plot retain method
+review for the valid, positive-weight records. Exact values here describe
+uncensored coding, not verified measurement precision; no semiquantitative
+reporting-class interval is inferred. Measurement, sampling and spatial
+uncertainty remain even when bounds coincide. A state boundary alone does not establish a
 homogeneous geological population in real data.
 
 The existing fitted/nonparametric censored CDF display can be used for model

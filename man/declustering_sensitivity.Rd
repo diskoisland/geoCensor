@@ -41,4 +41,6 @@ information counts or validated reliability thresholds. A small share of weight
 on exact values can make location and scale estimation sensitive even when
 many raw records are present. No new exclusion rule or confidence interval
 follows from these fractions.
+Method-review counts use the same chemistry/coordinate subset as the fit.
+Input counts include all supplied rows; see \code{\link[=flag_analytical_methods]{flag_analytical_methods()}}.
 }
