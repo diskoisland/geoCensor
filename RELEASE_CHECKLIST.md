@@ -53,3 +53,13 @@ and an exact-commit validation receipt. Downloaded asset bytes are verified.
 The release's `VALIDATION.md` asset records the final head, merge commit,
 workflow links and archive checksum. Local research artifacts remain unbundled;
 links into `output/` in the development log refer to those local records.
+
+
+## Workflow input correction
+
+Before tagging, the initial main run exposed an unsupported `check_args`
+workflow input. The official action takes `args`; its default already matched
+our intended `c("--no-manual", "--as-cran")`, so earlier checks ran as intended.
+The input name was corrected through a separate review change. Final publication
+is gated on green checks of the corrected head and its merged main commit.
+The checked package files/archive are unchanged by this configuration-only fix.
