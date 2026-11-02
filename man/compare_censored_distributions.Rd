@@ -48,6 +48,12 @@ This is a diagnostic for whether the lognormal assumption is competitive
 against other censored parametric choices such as Weibull or log-logistic.
 }
 \details{
+Fits with warnings or nonfinite parameter estimates are marked as not
+converged and excluded from delta AIC, Akaike weights, and best-fit flags.
+Raw AIC values are retained for inspection. Invalid censoring limits are
+excluded and contradictory censoring flags raise an error, as in
+\code{\link[=fit_cen_lognorm]{fit_cen_lognorm()}}.
+
 AIC comparison is not a formal proof that a distribution is true. It is a
 likelihood-based diagnostic for whether the lognormal model fits better or
 worse than alternative parametric censored models on the same data.

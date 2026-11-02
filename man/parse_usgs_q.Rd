@@ -17,6 +17,9 @@ A tibble with columns:
 \item detected_val
 \item left_cen, left_limit
 \item right_cen, right_limit
+Invalid values, unknown qualifiers, and conflicting censoring encodings are
+excluded from numerical fields and identified in \code{validation_status}.
+Only blank/missing, \code{L}, \code{N}, \code{<}, \code{G}, and \code{>} qualifiers are accepted.
 }
 }
 \description{
@@ -26,8 +29,8 @@ Parse USGS NGDB qvalue + qualifier into censoring fields
 Rules implemented (USGS NGDB style):
 \itemize{
 \item qvalue < 0  → left-censored at LOD = abs(qvalue)
-\item qvalue text ending ".1111" → right-censored at upper limit, numeric part
-\item qualifier "<" or "L" → left-censored, limit from numeric qvalue
+\item qvalue text ending ".1111" or ".11111" → right-censored at upper limit, numeric part
+\item qualifier "<", "L", or "N" → left-censored, limit from numeric qvalue
 \item qualifier ">" or "G" → right-censored, limit from numeric qvalue
 }
 }

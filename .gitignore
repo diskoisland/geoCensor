@@ -5,3 +5,16 @@
 .DS_Store
 *.Rproj.bak
 inst/doc
+
+# Generated package checks and analysis outputs; source files remain reviewable.
+*.Rcheck/
+/geoCensor_*.tar.gz
+/pfascensor_*.tar.gz
+/output/
+/outputs/
+/results/
+/tmp/
+/node_modules
+
+# Local research reading material; bibliographic notes retain source references.
+/Papers/

@@ -13,3 +13,26 @@
 ^~\$
 ^.*\.py$
 ^state_agi_vs_operational_hours\.svg$
+# Local analyses and sibling packages are not part of the installed package.
+^pfascensor$
+^utah-snow-water-icpms$
+^PFAS $
+^scripts$
+^node_modules$
+^outputs$
+^results$
+^tmp$
+# Generated check directories, archives, and standalone working artifacts.
+^.*\.Rcheck$
+^pfascensor_[0-9.]+\.tar\.gz$
+^.*\.pptx(\.inspect\.ndjson)?$
+^.*\.mjs$
+^es00082a001\.pdf$
+^trailer_clean_floor\.png$
+^DEVELOPMENT_LOG\.md$
+^\.github$
+^PAPER_FETCH_LIST\.md$
+# Local reference PDFs and their development review are not package content.
+^Papers$
+^PAPER_REVIEW\.md$
+^RELEASE_CHECKLIST\.md$

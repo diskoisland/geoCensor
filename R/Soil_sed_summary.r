@@ -20,61 +20,72 @@ add_substitution <- function(df) {
 
 #' Censoring-aware lognormal MLE with fitted quantiles
 #'
-#' Fits a left/right interval-censored lognormal (via [survival::survreg()]) and
-#' returns the geometric mean, 95% confidence interval, and selected fitted
-#' quantiles, all converted from ug/kg to mg/kg.
+#' Fits an interval-censored lognormal and reports geometric means, model-based
+#' confidence limits and fitted concentration quantiles in mg/kg. Input
+#' concentrations and limits must be in ug/kg.
 #'
 #' @param df Data frame with censoring fields: `detected_val`, `left_cen`,
 #'   `left_limit`, `right_cen`, `right_limit`.
-#' @param probs Quantile probabilities to return (default
-#'   `c(0.1, 0.5, 0.9, 0.95, 0.99)`).
+#' @param probs Unique numeric probabilities between zero and one (inclusive).
+#'   Defaults to `c(0.1, 0.5, 0.9, 0.95, 0.99)`. Probability 0.5 is reported as
+#'   `median`; other probabilities add `p`-prefixed percentage columns.
 #'
-#' @return A one-row tibble with `geomean`, `ci_low`, `ci_high`, `meanlog`,
-#'   `sdlog`, sample counts, and the requested quantiles (mg/kg). Returns NA
-#'   values with `method = "MLE"` when there are too few detections to fit.
+#' @details
+#' Uses the same interval validation and numerical fit guards as
+#' [fit_cen_lognorm()]. Fits require at least six usable records and two exact
+#' detections, without requiring any left-censored records. Invalid limits
+#' remain excluded; conflicting flags raise an error. Warnings, fitting errors
+#' and invalid parameter estimates suppress all fitted values. Count minima
+#' are computational guards, not evidence of reliable inference.
+#'
+#' Confidence limits assume an independent-observation lognormal model; they
+#' do not account for spatial dependence or preferential sampling. Spatial
+#' confidence limits remain experimental.
+#'
+#' @return A one-row tibble with `method`, sample counts, `meanlog` (log ug/kg),
+#'   `sdlog`, `geomean`, `ci_low`, `ci_high`, `median` and requested quantiles.
+#'   Concentration summaries are in mg/kg. The median is always included.
+#'   Method is `MLE` on success, `insufficient_data` for insufficient usable
+#'   data, or `failed_fit` for a numerical failure. Unavailable fitted values
+#'   remain NA, including every requested quantile.
 #' @export
 fit_lognorm_with_quants <- function(df, probs = c(0.1, 0.5, 0.9, 0.95, 0.99)) {
-  detected_val <- df$detected_val
-  left_cen     <- dplyr::coalesce(df$left_cen, FALSE)
-  right_cen    <- dplyr::coalesce(df$right_cen, FALSE)
-  left_limit   <- df$left_limit
-  right_limit  <- df$right_limit
-
-  is_left  <- left_cen  & is.finite(left_limit)  & left_limit  > 0
-  is_right <- right_cen & is.finite(right_limit) & right_limit > 0
-  is_exact <- is.finite(detected_val) & detected_val > 0 & !is_left & !is_right
-
-  n <- nrow(df)
-  lower <- upper <- rep(NA_real_, n)
-  lower[is_left]  <- 0;                    upper[is_left]  <- left_limit[is_left]
-  lower[is_right] <- right_limit[is_right]; upper[is_right] <- Inf
-  lower[is_exact] <- detected_val[is_exact]; upper[is_exact] <- detected_val[is_exact]
-
-  ok <- (is.finite(lower) & is.finite(upper)) | (is.finite(lower) & is.infinite(upper))
-
-  if (sum(ok) < 6 || sum(is_left[ok]) < 2 || sum(is_exact[ok]) < 2) {
-    return(tibble::tibble(
-      method = "MLE", n_total = sum(ok), n_left = sum(is_left[ok]), n_right = sum(is_right[ok]),
-      meanlog = NA_real_, sdlog = NA_real_, geomean = NA_real_, ci_low = NA_real_, ci_high = NA_real_,
-      p10 = NA_real_, median = NA_real_, p90 = NA_real_, p95 = NA_real_, p99 = NA_real_
-    ))
+  if (!is.numeric(probs) || !length(probs) || any(!is.finite(probs)) ||
+      any(probs < 0 | probs > 1) || anyDuplicated(probs)) {
+    stop("probs must be unique finite numeric probabilities between zero and one")
   }
-
-  fit     <- survival::survreg(survival::Surv(lower[ok], upper[ok], type = "interval2") ~ 1, dist = "lognormal")
-  meanlog    <- unname(stats::coef(fit)[1])
-  sdlog      <- fit$scale
-  se_meanlog <- summary(fit)$table[1, "Std. Error"]  # SE of the mean (for geomean CI)
-  qs_ugkg <- stats::qlnorm(probs, meanlog = meanlog, sdlog = sdlog)
-  names(qs_ugkg) <- paste0("p", probs * 100)
+  quantile_names <- paste0("p", probs[probs != 0.5] * 100)
+  if (anyDuplicated(quantile_names)) stop("probs must produce distinct quantile names")
+  intervals <- .censored_intervals(df, "detected_val", "left_cen", "left_limit",
+    "right_cen", "right_limit", "fit_lognorm_with_quants")
+  enough <- intervals$n_total >= 6 && intervals$n_exact >= 2
+  fit <- if (enough) .fit_validated_censored_lognormal(
+    intervals$lower[intervals$ok], intervals$upper[intervals$ok],
+    rep(1, intervals$n_total)
+  ) else NULL
+  method <- if (!enough) "insufficient_data" else if (is.null(fit)) "failed_fit" else "MLE"
+  meanlog <- sdlog <- se_meanlog <- NA_real_
+  if (!is.null(fit)) {
+    meanlog <- unname(stats::coef(fit)[1L])
+    sdlog <- fit$scale
+    se_meanlog <- sqrt(stats::vcov(fit)[1L, 1L])
+  }
   z <- stats::qnorm(0.975)
-
-  tibble::tibble(
-    method = "MLE", n_total = sum(ok), n_left = sum(is_left[ok]), n_right = sum(is_right[ok]),
-    meanlog = meanlog, sdlog = sdlog,
-    geomean = exp(meanlog) / 1000,
-    ci_low  = exp(meanlog - z * se_meanlog) / 1000,
+  out <- tibble::tibble(
+    method = method, n_total = intervals$n_total,
+    n_left = intervals$n_left, n_right = intervals$n_right,
+    meanlog = meanlog, sdlog = sdlog, geomean = exp(meanlog) / 1000,
+    ci_low = exp(meanlog - z * se_meanlog) / 1000,
     ci_high = exp(meanlog + z * se_meanlog) / 1000,
-    p10 = qs_ugkg["p10"] / 1000, median = qs_ugkg["p50"] / 1000,
-    p90 = qs_ugkg["p90"] / 1000, p95 = qs_ugkg["p95"] / 1000, p99 = qs_ugkg["p99"] / 1000
+    median = exp(meanlog) / 1000
   )
+  values <- if (is.null(fit)) rep(NA_real_, length(quantile_names)) else
+    stats::qlnorm(probs[probs != 0.5], meanlog = meanlog, sdlog = sdlog) / 1000
+  for (i in seq_along(quantile_names)) out[[quantile_names[i]]] <- values[i]
+  # Preserve the established default column order.
+  if (identical(probs, c(0.1, 0.5, 0.9, 0.95, 0.99))) {
+    out <- out[, c("method", "n_total", "n_left", "n_right", "meanlog", "sdlog",
+      "geomean", "ci_low", "ci_high", "p10", "median", "p90", "p95", "p99")]
+  }
+  out
 }

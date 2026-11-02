@@ -17,7 +17,9 @@ optional qualifier).}
 \item{suffix}{Suffix for column names (default "_mgkg").}
 }
 \value{
-Wide data frame: one row per lab_id, one column per element (mg/kg).
+Wide data frame: one row per lab_id, one column per element (mg/kg),
+with a \code{validation_summary} attribute counting usable and excluded rows.
+Excluded input rows produce a warning and missing concentrations.
 }
 \description{
 Censoring is parsed with \code{\link[=parse_usgs_q]{parse_usgs_q()}}, so left/right censoring encoded via
@@ -26,5 +28,6 @@ qualifier are all handled consistently with the maximum-likelihood path.
 Left-censored values are substituted at \code{lod_factor} times the detection limit,
 right-censored values at the upper limit, and detections kept as reported.
 Concentrations are converted to mg/kg from the native reporting unit
-(\code{ppm} = mg/kg; \code{pct} = weight percent = 1e4 mg/kg); other units are set to \code{NA}.
+(ppm, mg/kg, ppb, ug/kg, micro-symbol equivalents, pct, percent, or \%).
+Other units are set to \code{NA}. Duplicate sample/element pairs raise an error.
 }

@@ -55,13 +55,18 @@ spatial_coverage_by_state <- function(df,
     bbox_area_deg2 = double()
   )
 
+  coordinate_numeric <- function(x) {
+    if (is.numeric(x)) x else suppressWarnings(as.numeric(as.character(x)))
+  }
   points <- tibble::tibble(
-    state = as.character(df[[state_col]]),
-    lat = as.numeric(df[[lat_col]]),
-    lon = as.numeric(df[[lon_col]])
+    state = trimws(as.character(df[[state_col]])),
+    # Parse labels rather than factor level numbers when coordinates are factors.
+    lat = coordinate_numeric(df[[lat_col]]),
+    lon = coordinate_numeric(df[[lon_col]])
   ) %>%
     dplyr::filter(
       !is.na(.data$state),
+      nzchar(.data$state),
       is.finite(.data$lat),
       is.finite(.data$lon),
       .data$lat >= -90,
