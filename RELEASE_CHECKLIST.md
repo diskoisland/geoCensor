@@ -1,46 +1,55 @@
-# geoCensor 1.1.0 release candidate
+# geoCensor 1.1.0 release validation
 
-Prepared November 1, 2026. Version metadata is 1.1.0; no release tag is published.
+Prepared November 1, 2026. Release record and downloadable assets:
+[v1.1.0](https://github.com/diskoisland/geoCensor/releases/tag/v1.1.0).
 
-- Scope: USGS censoring/data-integrity improvements, multi-element workflows,
-  descriptive declustering/support diagnostics and empirical censoring bounds.
-- Ordinary model intervals assume independent observations and an appropriate
-  lognormal model. Weighted routine limits remain NA. Spatial inference is
-  experimental and research routines remain outside the installed API.
-- Compatibility changes: duplicate sample/element pairs must be selected before
-  widening; quantile summaries now distinguish insufficient data and failed fits.
-- The clean 1.1.0 source package passed local `R CMD build --no-manual` and
-  `R CMD check --no-manual` (Status: OK), including vignette creation/rebuilding.
-  The full suite passed 77 tests / 410 expectations, with no failures, errors,
-  warnings or skips. Installed single/all-element command-line examples passed
-  on synthetic data, retaining leading-zero IDs, unsupported-species statuses
-  and missing weighted confidence limits.
-- Cross-platform GitHub Actions checks must pass on the exact review-branch
-  commit before tagging. No merge, release or tag is performed by preparation.
-- Local output artifacts and source data are not included in the publication
-  allowlist. Build-log output links refer to unbundled local research artifacts.
+## Scope and compatibility
 
-The workflow follows the [r-lib standard check template](https://github.com/r-lib/actions/blob/v2/examples/check-standard.yaml).
+USGS censoring/data-integrity improvements, multi-element workflows,
+descriptive declustering/support diagnostics and empirical censoring bounds.
+Duplicate sample/element pairs must be selected before widening; quantile
+summaries now distinguish insufficient data and failed fits. Default successful
+quantile output names/order and concentration units are preserved.
 
-Checked source archive SHA-256:
+Ordinary model intervals assume independent observations and an appropriate
+lognormal model. Weighted routine limits remain NA. Spatial inference is
+experimental, and research routines remain outside the installed API.
 
-`9c696f14e9951160e9e1921afdb6897e22ce5531dcd809f7c5b73da4934b2767`
+## Validation record
 
-The checked archive has 101 files, generated from 97 explicitly selected source
-files. The repository publication allowlist also includes CI, citation metadata
-and development research sources. No tag or release is created by this step.
+The candidate passed 77 tests / 410 expectations with no failures, errors,
+warnings or skips. Installed single/all-element examples passed on synthetic
+data, retaining leading-zero IDs, unsupported/all-left statuses and missing
+weighted confidence limits. The final release archive passed a fresh
+`R CMD build --no-manual` and `R CMD check --no-manual` (Status: OK), including
+vignette creation/rebuilding and the full package test suite.
 
-## Published review and cross-platform result
+The final package's R, help, tests, installed examples and vignette sources are
+identical to the checked candidate. Final installed-package changes are only
+the README/NEWS release wording; citation metadata adds the release date.
+The final source stage contains 97 files and its archive 101 files, including
+generated vignette material. The archive excludes PFAS, source data, papers,
+research scripts and generated research outputs.
 
-Draft [pull request #1](https://github.com/diskoisland/geoCensor/pull/1) contains
-candidate commit `c7845c3bc1568f2078a9e135d0da0e756113c8ca` on
-`codex/release-1.1.0`. All five jobs in the
-[candidate workflow run](https://github.com/diskoisland/geoCensor/actions/runs/41385826608)
-passed: macOS release, Windows release, Ubuntu release, Ubuntu oldrel-1 and
-Ubuntu devel. The development-R job spent most of its time installing
-dependencies, then passed the package check.
+Archive SHA-256:
 
-This validation-record update changes only this checklist and the development
-log. All 97 checked package source files and the archive checksum above remain
-unchanged. Any new head commit still needs green checks before tagging. No
-merge, tag or release has been created; the draft remains available for review.
+`bfd47d1d89828b8cd87efe04a835cdbddb241cefaa12112d9e919fb1cb1232e2`
+
+## Review, checks and publication gates
+
+[PR #1](https://github.com/diskoisland/geoCensor/pull/1) records the review.
+Both [candidate](https://github.com/diskoisland/geoCensor/actions/runs/41385826608)
+and [documentation-head](https://github.com/diskoisland/geoCensor/actions/runs/41388359960)
+matrices passed all five jobs: macOS/current R, Windows/current R,
+Ubuntu/current R, Ubuntu/oldrel-1 and Ubuntu/devel.
+
+Finalization requires the final metadata head's five checks to pass, then a
+normal merge matching that exact PR head. The merged tree must match the checked
+release tree and all five main-branch checks must pass before tagging.
+Publication uses an annotated `v1.1.0` tag pinned to that merge commit, with no
+force update or deletion. The release includes the checked archive, checksums
+and an exact-commit validation receipt. Downloaded asset bytes are verified.
+
+The release's `VALIDATION.md` asset records the final head, merge commit,
+workflow links and archive checksum. Local research artifacts remain unbundled;
+links into `output/` in the development log refer to those local records.

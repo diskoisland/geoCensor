@@ -2,19 +2,21 @@
 
 ## Status — November 1, 2026
 
-The release candidate source is now **1.1.0**, consistently recorded in
-`DESCRIPTION`, the README citation and `CITATION.cff`. The latest published tag
-known at preparation is still `v0.1.0`; no V1.1 tag/release is published by
-candidate preparation. Historical entries below accurately retain the earlier
-0.1.0 development version. The starting commit was `911f8aa` (Add censored
-lognormal fit plots). Final publication is limited to an explicit file allowlist.
+The package source version is **1.1.0**, consistently recorded in
+`DESCRIPTION`, the README citation and `CITATION.cff`. Release record and checked
+assets: [v1.1.0](https://github.com/diskoisland/geoCensor/releases/tag/v1.1.0).
+Historical entries below retain the earlier 0.1.0 development version and the
+prepublication candidate status. The starting commit was `911f8aa` (Add censored
+lognormal fit plots). Publication is limited to an explicit file allowlist.
 
-The exact 1.1.0 candidate now passes local source build and R CMD check (Status:
-OK), including vignette creation/rebuilding. All 77 tests / 410 expectations
-pass without failures, errors, warnings or skips. Installed single/all-element
-examples also pass on synthetic data. All five remote cross-platform jobs passed on the source candidate commit
-`c7845c3`; the checklist links the workflow result and draft pull request. Any
-subsequent head still needs green checks before tagging.
+The candidate passed 77 tests / 410 expectations without failures, errors,
+warnings or skips, plus installed single/all-element examples. All five remote
+jobs passed on both candidate and documentation heads. Final release wording
+received a fresh clean source build and R CMD check (Status: OK), including
+vignette creation/rebuilding and package tests. The R/help/test/example/vignette
+sources remain unchanged from the validated candidate. Final exact-commit
+publication checks are specified in [the release validation record](RELEASE_CHECKLIST.md)
+and retained with the GitHub release assets.
 
 Completed package work includes sampling-support/method audits, multi-element
 USGS analysis, information review flags and a worked vignette. Spatial research
@@ -2225,3 +2227,35 @@ outcome in this log and RELEASE_CHECKLIST.md. All 97 checked package source
 files and the checked archive SHA-256 remain identical. Head checks must still
 be green before tagging; this record is not a release announcement. The draft
 is ready for review, and spatial confidence limits remain experimental.
+
+
+## V1.1 publication finalization — November 1, 2026
+
+The user authorized moving from the reviewed candidate to merge and V1.1 tag/
+release publication. Fresh inspection found PR #1 open, draft, mergeable and
+clean, with all five checks passing on head 1a78cc671a9f70ededb65d7533ce1db0778a0bf0.
+The GitHub connector remained unavailable; the signed-in CLI is the fallback.
+
+Removed candidate/unpublished wording from README and NEWS, added the client-
+dated November 1, 2026 citation release date, and refreshed this log/checklist.
+No public function, dependency, test, example, vignette or scientific inference
+rule changed. Ordinary model assumptions and experimental spatial limits remain
+explicit. The final installed-source changes are only README/NEWS wording.
+Fresh final archive build/check passes, Status: OK, including package tests
+and vignette creation/rebuilding. The final stage has 97 files and archive 101;
+PFAS, data, papers, private research scripts and outputs are excluded.
+
+The publication procedure rechecks the exact final PR head, preserves branch
+protections, performs a normal merge without force/deletion, checks merged-tree
+and file hashes, and waits for all five main-branch checks before creating an
+annotated v1.1.0 tag. It publishes only the checked archive and traceable
+validation/checksum assets, then verifies downloaded archive bytes. Final head,
+merge commit, workflows, tag and asset verification are retained in the release's
+VALIDATION.md and local publication receipt. Existing research failures and
+original data remain intact; spatial confidence limits remain experimental.
+
+Final archive SHA-256: `bfd47d1d89828b8cd87efe04a835cdbddb241cefaa12112d9e919fb1cb1232e2`.
+
+[Release publication record](https://github.com/diskoisland/geoCensor/releases/tag/v1.1.0)
+[Final local check](output/release_1.1.0_2026-11-01/check.log)
+[Publication receipt](output/release_1.1.0_2026-11-01/PUBLICATION_RECEIPT.md)

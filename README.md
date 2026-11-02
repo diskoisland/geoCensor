@@ -2,9 +2,7 @@
 
 **Censoring-aware analysis of USGS National Geochemical Database (NGDB) data.**
 
-Source version **1.1.0**, prepared as a release candidate. See
-[NEWS.md](NEWS.md) for changes and compatibility notes. A V1.1 tag has not yet
-been published.
+Source version **1.1.0**. See [NEWS.md](NEWS.md) for changes and compatibility notes.
 
 I wrote geoCensor for working with USGS National Geochemical Database tables where a lot of the useful information is tucked inside detection limits, qualifiers, and non-detects. Those details matter: in the NGDB, detection limits vary by method and over time, so dropping non-detects or replacing everything with LOD/2 can move the center of the data in ways that are hard to see later.
 
