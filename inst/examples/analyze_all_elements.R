@@ -8,10 +8,13 @@ args <- args[args != "--stratify-methods"]
 audit_method_overlap <- any(args == "--method-overlap")
 if (sum(args == "--method-overlap") > 1L) stop("Supply --method-overlap only once", call. = FALSE)
 args <- args[args != "--method-overlap"]
+audit_source_precision <- any(args == "--audit-source-precision")
+if (sum(args == "--audit-source-precision") > 1L) stop("Supply --audit-source-precision only once", call. = FALSE)
+args <- args[args != "--audit-source-precision"]
 if (!length(args) %in% c(2L, 3L, 6L, 7L)) {
   stop(paste(
     "Usage: Rscript analyze_all_elements.R chemistry.csv output_dir",
-    "[metadata.csv [x_col y_col cell_sizes [group_cols]]] [--stratify-methods] [--method-overlap]",
+    "[metadata.csv [x_col y_col cell_sizes [group_cols]]] [--stratify-methods] [--method-overlap] [--audit-source-precision]",
     "Separate cell sizes and grouping columns with commas.",
     "Example: bestvalue.csv output/all main_projected.csv x_m y_m 5000,10000,20000 state",
     sep = "\n"
@@ -21,8 +24,9 @@ if (audit_method_overlap && length(args) < 6L) {
   stop("--method-overlap requires metadata, projected x_col/y_col and cell_sizes", call. = FALSE)
 }
 suppressPackageStartupMessages(library(geoCensor))
-if (utils::packageVersion("geoCensor") < "1.2.0") {
-  stop("Install geoCensor 1.2.0 or newer to use this workflow.", call. = FALSE)
+required_version <- "1.2.0.9003"
+if (utils::packageVersion("geoCensor") < required_version) {
+  stop("Install geoCensor ", required_version, " or newer to use the requested workflow.", call. = FALSE)
 }
 output_dir <- args[2]
 check_output_directory <- function() {
@@ -39,13 +43,15 @@ chemistry <- read_input(args[1])
 metadata <- if (length(args) >= 3L) read_input(args[3]) else NULL
 sizes <- if (length(args) >= 6L) as.numeric(strsplit(args[6], ",", fixed = TRUE)[[1]]) else NULL
 groups <- if (length(args) == 7L) strsplit(args[7], ",", fixed = TRUE)[[1]] else character()
-result <- analyze_elements(
-  chemistry, main_df = metadata, group_cols = groups, cell_sizes = sizes,
+batch_args <- list(
+  chem_df = chemistry, main_df = metadata, group_cols = groups, cell_sizes = sizes,
   x_col = if (length(args) >= 6L) args[4] else NULL,
   y_col = if (length(args) >= 6L) args[5] else NULL,
   stratify_methods = stratify_methods,
   audit_method_overlap = audit_method_overlap
 )
+if (audit_source_precision) batch_args$audit_source_precision <- TRUE
+result <- do.call(analyze_elements, batch_args)
 check_output_directory()
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 if (!dir.exists(output_dir)) stop("Could not create output directory", call. = FALSE)
@@ -63,6 +69,8 @@ writeLines(c(
   "Weighted confidence limits are not computed.",
   paste("Unweighted method stratification:", stratify_methods),
   paste("Geographic method overlap:", audit_method_overlap),
+  paste("Source-summary precision audit:", audit_source_precision),
+  if (audit_source_precision) "Source-precision candidates/deltas retain input units and do not replace estimator inputs.",
   if (audit_method_overlap) "Method overlap uses common grids; placement ranges are not confidence limits or paired-sample evidence.",
   "methods.csv records input and unweighted fit-subset method counts; unresolved flags stay NA."
 ), file.path(output_dir, "run_summary.txt"))

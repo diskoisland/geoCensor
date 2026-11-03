@@ -80,6 +80,7 @@ test_that("rounded best-value exports recover explicit upper limits from summary
   chem <- tibble::tibble(
     lab_id = c("a", "b", "c", "d"), species = "Ag", unit = "ppm",
     qvalue = c("10.11", "10.11", "10.11", "20.11"),
+    amethod = "MS_HF",
     summary = c("10.11111, MS_HF", "10.11, MS_HF", NA, "10.11111, MS_HF")
   )
   out <- build_element(chem, "Ag")

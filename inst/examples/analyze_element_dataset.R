@@ -1,18 +1,22 @@
 #!/usr/bin/env Rscript
 
-# Usage: Rscript analyze_element_dataset.R bestvalue.csv Ag output/Ag [--stratify-methods]
+# Usage: Rscript analyze_element_dataset.R bestvalue.csv Ag output/Ag [--stratify-methods] [--audit-source-precision]
 # Uses the installed geoCensor package. All concentrations are in ug/kg.
 args <- commandArgs(trailingOnly = TRUE)
 stratify_methods <- any(args == "--stratify-methods")
 if (sum(args == "--stratify-methods") > 1L) stop("Supply --stratify-methods only once", call. = FALSE)
 args <- args[args != "--stratify-methods"]
+audit_source_precision <- any(args == "--audit-source-precision")
+if (sum(args == "--audit-source-precision") > 1L) stop("Supply --audit-source-precision only once", call. = FALSE)
+args <- args[args != "--audit-source-precision"]
 if (length(args) != 3L) {
-  stop("Usage: Rscript analyze_element_dataset.R chemistry.csv element output_dir [--stratify-methods]",
+  stop("Usage: Rscript analyze_element_dataset.R chemistry.csv element output_dir [--stratify-methods] [--audit-source-precision]",
        call. = FALSE)
 }
 suppressPackageStartupMessages(library(geoCensor))
-if (utils::packageVersion("geoCensor") < "1.2.0") {
-  stop("Install geoCensor 1.2.0 or newer to use this workflow.", call. = FALSE)
+required_version <- "1.2.0.9003"
+if (utils::packageVersion("geoCensor") < required_version) {
+  stop("Install geoCensor ", required_version, " or newer to use the requested workflow.", call. = FALSE)
 }
 output_dir <- args[3]
 check_output_directory <- function() {
@@ -39,7 +43,9 @@ ids <- trimws(as.character(observations$lab_id))
 if (anyNA(ids) || any(ids == "")) stop("Missing or blank lab_id values")
 if (anyDuplicated(ids)) stop("Duplicate lab_id values; select one result per sample first")
 audit <- dplyr::count(observations, .data$validation_status, name = "n_observations")
-batch <- analyze_elements(chemistry, elements = args[2], stratify_methods = stratify_methods)
+batch_args <- list(chem_df = chemistry, elements = args[2], stratify_methods = stratify_methods)
+if (audit_source_precision) batch_args$audit_source_precision <- TRUE
+batch <- do.call(analyze_elements, batch_args)
 estimate <- batch$estimates
 comparison <- batch$distributions
 methods <- batch$methods
@@ -59,6 +65,10 @@ readr::write_csv(methods, file.path(output_dir, "methods.csv"))
 readr::write_csv(estimate, file.path(output_dir, "pooled_estimate.csv"))
 readr::write_csv(comparison, file.path(output_dir, "distribution_comparison.csv"))
 if (stratify_methods) readr::write_csv(batch$method_estimates, file.path(output_dir, "method_estimates.csv"))
+if (audit_source_precision) {
+  readr::write_csv(batch$source_precision, file.path(output_dir, "source_precision.csv"))
+  readr::write_csv(batch$source_precision_summary, file.path(output_dir, "source_precision_summary.csv"))
+}
 if (!is.null(plot)) {
   ggplot2::ggsave(file.path(output_dir, "lognormal_fit.png"), plot,
                  width = 8, height = 5, dpi = 180)
@@ -66,6 +76,10 @@ if (!is.null(plot)) {
 analysis <- list(observations = observations, validation = audit, estimate = estimate,
                  comparison = comparison, methods = methods)
 if (stratify_methods) analysis$method_estimates <- batch$method_estimates
+if (audit_source_precision) {
+  analysis$source_precision <- batch$source_precision
+  analysis$source_precision_summary <- batch$source_precision_summary
+}
 saveRDS(analysis, file.path(output_dir, "analysis.rds"))
 writeLines(c(
   paste("Input:", normalizePath(args[1])),
@@ -77,6 +91,8 @@ writeLines(c(
   paste("Estimation method:", estimate$method),
   paste("Method review:", estimate$method_review_status),
   paste("Unweighted method stratification:", stratify_methods),
+  paste("Source-summary precision audit:", audit_source_precision),
+  if (audit_source_precision) "Source-precision candidates/deltas retain input units and do not replace estimator inputs.",
   "Method review does not infer reporting-class bounds or validate measurement precision."
 ), file.path(output_dir, "run_summary.txt"))
 writeLines(capture.output(sessionInfo()), file.path(output_dir, "session_info.txt"))

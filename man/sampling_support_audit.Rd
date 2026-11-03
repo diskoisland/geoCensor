@@ -10,7 +10,8 @@ sampling_support_audit(
   support_cols = NULL,
   id_col = "lab_id",
   x_col = NULL,
-  y_col = NULL
+  y_col = NULL,
+  include_memberships = FALSE
 )
 }
 \arguments{
@@ -26,11 +27,20 @@ collection_protocol, and amethod. At least one field must be available.}
 
 \item{x_col, y_col}{Optional numeric coordinate column names. Both are needed
 for location summaries; finite coordinate pairs are compared exactly.}
+
+\item{include_memberships}{If TRUE, require coordinates and append a
+per-record \code{memberships} table and global \code{coordinate_groups} table.
+Default FALSE preserves the four existing output components.}
 }
 \value{
 A list with fields (counts and missingness by field/domain),
 combinations (recorded support tuples and counts), locations (optional
 exact-coordinate counts and review flags), and available_fields (names used).
+Optional memberships preserve original columns, row order and raw IDs, adding
+recorded_position_group, n_records_at_position, position_membership_status and
+review_shared_position. Unlocated rows have missing group/count/review fields.
+coordinate_groups reports exact pairs across all analysis domains, support
+differences/gaps and n_analysis_domains. A pooled audit counts as one domain.
 }
 \description{
 Describes missingness and differences in depth, horizon, size fraction,
@@ -50,4 +60,15 @@ same physical sampling support. This function does not delete samples,
 deduplicate co-located records, infer spatial independence, or assign weights.
 It is not a near-neighbour clustering method. Inspect coordinate quality and
 analytical methods alongside these summaries before defining pooled domains.
+
+Optional memberships use exact numeric pairs without rounding or text keys.
+Groups span analysis domains so a shared position is not silently split by a
+state or other label. The original locations component remains domain-specific.
+Position labels are deterministic within a cohort under row reordering, but
+are not persistent site identifiers across cohort changes. Coordinates must
+share a suitable reference system; none is inferred or transformed here.
+Missing/nonfinite coordinates never form a shared unknown-position group.
+review_shared_position is TRUE for repeated positions and NA otherwise;
+singletons are not certified independent. Records are neither collapsed nor
+assigned weights. Original columns must not use optional derived field names.
 }

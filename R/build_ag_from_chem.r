@@ -11,8 +11,13 @@
 #' Supported mass-fraction units are ppm, mg/kg, ppb, ug/kg (including micro
 #' symbols), pct, and percent. Duplicate sample rows are retained.
 #' If `summary` contains an explicit upper-censoring suffix in its first
-#' (best-ranked) analysis and that value rounds to the reported qvalue, its
-#' censoring information is recovered. `qvalue_raw` retains the original value;
+#' (best-ranked) analysis, that value rounds to the reported qvalue, and a known
+#' method matches with compatible usable coding, its censoring is recovered.
+#' Missing/UNKNOWN methods, mismatches, malformed entries and coding conflicts
+#' block recovery. The original qvalue/qualifier are then parsed as reported.
+#' `summary_recovery_status` records recovery, unnecessary recovery, no upper
+#' evidence, or a specific blocking reason; it does not certify measurement QA.
+#' `qvalue_raw` retains the original value;
 #' `censoring_source` records whether the limit came from summary or qvalue.
 #' [flag_analytical_methods()] adds separate method-review fields. Method
 #' concerns do not change `validation_status`, censoring fields or values;
@@ -48,6 +53,7 @@ build_ag_from_chem <- function(chem_df,
   
   out <- dplyr::bind_cols(df, cen)
   out$censoring_source <- effective$source
+  out$summary_recovery_status <- effective$status
   
   if (to_ugkg) {
     out <- out %>%
@@ -81,18 +87,41 @@ build_ag_from_chem <- function(chem_df,
 
 # Best-value CSV exports may round qvalue to two decimal places. The first
 # summary value is the best-ranked original analysis (USGS data dictionary).
-# Recover only explicit upper-censoring suffixes that agree with rounded qvalue.
+# Inspect only potential upper-suffix entries. The standalone audit supplies the
+# same strict first-entry/method/coding rules without auditing millions of ordinary
+# rows during routine parsing. Blocked evidence leaves original coding intact.
 .qvalue_for_censoring <- function(df) {
   value <- as.character(df$qvalue)
   source <- rep("qvalue", nrow(df))
+  status <- rep("no_summary", nrow(df))
   if ("summary" %in% names(df)) {
-    first <- trimws(sub(",.*$", "", as.character(df$summary)))
-    original <- suppressWarnings(as.numeric(first))
-    reported <- suppressWarnings(as.numeric(value))
-    recover <- grepl("\\.1{4,5}$", first) & is.finite(original) &
-      is.finite(reported) & abs(round(original, 2) - reported) < 1e-8
-    value[recover] <- first[recover]
-    source[recover] <- "summary_upper_limit"
+    summaries <- trimws(as.character(df$summary))
+    supplied <- !is.na(summaries) & nzchar(summaries)
+    status[supplied] <- "no_upper_limit_evidence"
+    first <- trimws(sub(",.*$", "", sub(";.*$", "", summaries)))
+    candidates <- which(supplied & grepl("\\.1{4,5}$", first))
+    if (length(candidates)) {
+      fields <- intersect(c("qvalue", "amethod", "summary", "qualifier"), names(df))
+      checked <- audit_summary_precision(df[candidates, fields, drop = FALSE])
+      labels <- c(
+        summary_upper_limit_evidence = "recovered_summary_upper_limit",
+        same_reported_value = "original_upper_limit_retained",
+        different_reported_value = "blocked_value_disagreement",
+        different_reported_limit = "blocked_limit_disagreement",
+        censoring_encoding_difference = "blocked_censoring_conflict",
+        method_mismatch = "blocked_method_mismatch",
+        method_information_missing = "blocked_method_information_missing",
+        reported_coding_needs_review = "blocked_reported_coding",
+        summary_coding_needs_review = "blocked_summary_coding",
+        unparsed_summary = "blocked_malformed_summary",
+        not_available_summary = "no_summary")
+      mapped <- unname(labels[checked$summary_precision_status])
+      if (anyNA(mapped)) stop("Unrecognized summary-recovery review status")
+      status[candidates] <- mapped
+      recover <- checked$summary_precision_status == "summary_upper_limit_evidence"
+      value[candidates[recover]] <- checked$summary_first_value_raw[recover]
+      source[candidates[recover]] <- "summary_upper_limit"
+    }
   }
-  list(value = value, source = source)
+  list(value = value, source = source, status = status)
 }
