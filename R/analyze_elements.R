@@ -29,6 +29,10 @@
 #'   method_coverage and method_overlap tables from [method_spatial_overlap()]
 #'   within each element/domain. Requires cell_sizes and projected x_col/y_col.
 #'   Independent of stratify_methods; default FALSE leaves existing outputs intact.
+#' @param audit_source_precision If TRUE, append `source_precision` with the
+#'   requested original chemistry rows and [audit_summary_precision()] fields,
+#'   plus `source_precision_summary` counts by element/domain/status. Default
+#'   FALSE leaves existing components intact. No candidate replaces model inputs.
 #' @return A list of tibbles: estimates (input/exclusion counts and fit results),
 #'   distributions (unweighted model comparisons), validation (counts by reason),
 #'   declustering (optional sensitivity results), joins (optional join audits),
@@ -41,6 +45,12 @@
 #'   With audit_method_overlap = TRUE, three additional components record data
 #'   availability, coverage by method/scale and named-method pair overlap. They
 #'   use sorted unique cell sizes and the same n_offsets value as declustering.
+#'   With audit_source_precision = TRUE, source_precision retains requested input
+#'   row order, raw IDs/values/units and all original chemistry columns. Grouping
+#'   columns available only in metadata are appended using the validated ID join.
+#'   Its candidates and numeric deltas remain in each row's original units;
+#'   estimator outputs continue to use ug/kg. source_precision_summary counts all
+#'   requested input rows, including those excluded from numerical estimation.
 #' @details
 #' Duplicate sample IDs within an element and missing sample IDs raise an error;
 #' select one result per sample and element before analysis. Unsupported units
@@ -77,17 +87,29 @@
 #' stay NA. Shared cells do not establish paired samples or analytical agreement;
 #' grid-placement ranges are not confidence limits. Neither diagnostic modifies
 #' existing estimates, chooses a method or changes declustering weights.
+#'
+#' Source-precision review compares the original reported value with the first
+#' explicitly associated summary entry before any existing parser recovery or unit
+#' conversion. It does not change that recovery, select a representation, certify
+#' analytical reliability or filter observations. Missing summaries and unresolved
+#' methods remain explicit. Requested species with no input rows produce no
+#' phantom audit records or status counts. Grouping names must not conflict with
+#' the eight source-audit fields or their status-count field `n_observations`.
 #' @export
 analyze_elements <- function(chem_df, elements = NULL, main_df = NULL,
                              group_cols = character(), cell_sizes = NULL,
                              x_col = NULL, y_col = NULL, n_offsets = 10,
                              min_exact_review = 10, min_exact_fraction_review = 0.05,
-                             stratify_methods = FALSE, audit_method_overlap = FALSE) {
+                             stratify_methods = FALSE, audit_method_overlap = FALSE,
+                             audit_source_precision = FALSE) {
   if (!is.logical(stratify_methods) || length(stratify_methods) != 1L || is.na(stratify_methods)) {
     stop("stratify_methods must be TRUE or FALSE")
   }
   if (!is.logical(audit_method_overlap) || length(audit_method_overlap) != 1L || is.na(audit_method_overlap)) {
     stop("audit_method_overlap must be TRUE or FALSE")
+  }
+  if (!is.logical(audit_source_precision) || length(audit_source_precision) != 1L || is.na(audit_source_precision)) {
+    stop("audit_source_precision must be TRUE or FALSE")
   }
   if (audit_method_overlap && is.null(cell_sizes)) stop("audit_method_overlap requires cell_sizes and projected coordinates")
   required <- c("lab_id", "species", "qvalue", "unit")
@@ -105,6 +127,14 @@ analyze_elements <- function(chem_df, elements = NULL, main_df = NULL,
   if (!is.character(group_cols) || anyNA(group_cols) || anyDuplicated(group_cols) ||
       any(!nzchar(group_cols)) || any(group_cols %in% c("element", "species", "lab_id"))) {
     stop("group_cols must contain unique analysis-domain column names")
+  }
+  source_precision <- NULL
+  if (audit_source_precision) {
+    conflicts <- intersect(group_cols, c(.summary_precision_columns(), "n_observations"))
+    if (length(conflicts)) stop("Grouping columns conflict with source-precision fields: ",
+      paste(conflicts, collapse = ", "), ". Rename these grouping columns before analysis.", call. = FALSE)
+    requested <- as.character(chem_df$species) %in% elements
+    source_precision <- audit_summary_precision(chem_df[requested, , drop = FALSE])
   }
   flag_estimate_information(tibble::tibble(n_total = integer(), n_left = integer(),
     n_right = integer(), geomean = double()), min_exact_review, min_exact_fraction_review)
@@ -182,7 +212,27 @@ analyze_elements <- function(chem_df, elements = NULL, main_df = NULL,
   names_out <- c("estimates", "distributions", "validation", "declustering", "joins", "methods",
     if (stratify_methods) "method_estimates",
     if (audit_method_overlap) c("method_overlap_support", "method_coverage", "method_overlap"))
-  stats::setNames(lapply(names_out, function(name) dplyr::bind_rows(lapply(results, `[[`, name))), names_out)
+  out <- stats::setNames(lapply(names_out, function(name) dplyr::bind_rows(lapply(results, `[[`, name))), names_out)
+  if (audit_source_precision) {
+    # The ordinary workflow above validates keys and joins. Attach only metadata
+    # grouping fields here, preserving original source IDs and row order.
+    metadata_groups <- setdiff(group_cols, names(source_precision))
+    if (length(metadata_groups)) {
+      matched <- match(trimws(as.character(source_precision$lab_id)),
+        trimws(as.character(main_df$lab_id)))
+      for (column in metadata_groups) source_precision[[column]] <- main_df[[column]][matched]
+    }
+    summary_input <- dplyr::bind_cols(
+      tibble::tibble(element = as.character(source_precision$species)),
+      source_precision[group_cols],
+      tibble::tibble(summary_precision_status = source_precision$summary_precision_status))
+    keys <- c("element", group_cols, "summary_precision_status")
+    out$source_precision <- source_precision
+    out$source_precision_summary <- dplyr::summarise(
+      dplyr::group_by(summary_input, dplyr::across(dplyr::all_of(keys))),
+      n_observations = dplyr::n(), .groups = "drop")
+  }
+  out
 }
 
 # These unweighted summaries partition the existing element/domain input, not

@@ -2,7 +2,7 @@
 
 **Censoring-aware analysis of USGS National Geochemical Database (NGDB) data.**
 
-Source version **1.2.0**. Published versions and downloadable assets are listed
+Development source version **1.2.0.9005**. Published versions and downloadable assets are listed
 on the [releases page](https://github.com/diskoisland/geoCensor/releases). See
 [NEWS.md](NEWS.md) for changes and compatibility notes.
 
@@ -115,7 +115,7 @@ chemistry or best-value CSV:
 Rscript inst/examples/analyze_element_dataset.R data/ngdbsoil/bestvalue.csv Ag output/Ag
 ```
 
-This requires installed geoCensor 1.2.0 or newer. Replace `Ag` with another element
+This requires installed geoCensor 1.2.0.9003 or newer. Replace `Ag` with another element
 symbol. The workflow converts supported units (`ppm`, `mg/kg`, `ppb`, `ug/kg`, micro-symbol equivalents, and percent units) to ug/kg and
 exports normalized observations, the pooled estimate, censored distribution
 comparisons, a fitted CDF plot when estimation succeeds, serialized results,
@@ -134,6 +134,94 @@ The `join_audit` attribute records match counts. Wide metals tables reject
 repeated sample/element pairs instead of averaging them; choose the appropriate
 result explicitly before widening. Their `validation_summary` attribute records
 usable and excluded input counts.
+
+## Save a reproducible metadata audit
+
+```r
+run <- audit_sampling_file(
+  "metadata.csv", "output/support_review", group_cols = "state",
+  x_col = "long_wgs84", y_col = "lat_wgs84", include_memberships = TRUE
+)
+```
+
+This workflow requires1.2.0.9005 and a new or empty output directory. It exports
+support/membership tables, raw metadata, coordinate conversions, RDS, input MD5,
+configuration and session information. Fields are read as text to retain IDs and
+formatting. The analysis copy treats trimmed blank/NA as missing; exported raw
+metadata and membership source columns preserve original text. Location/group
+coordinates are numeric, with each conversion recorded separately.
+
+The installed `examples/audit_sampling_support.R` command provides the same run:
+
+```text
+Rscript audit_sampling_support.R metadata.csv output/support_review --group-cols=state --coords=long_wgs84,lat_wgs84 --memberships
+```
+
+Use `system.file("examples", "audit_sampling_support.R", package = "geoCensor")`
+to locate the installed script. Optional `--support-cols=depth,mesh_size` and
+`--id-col=lab_id` select fields explicitly. Without coordinates or memberships,
+the command exports the ordinary field/combination audit. Invalid coordinate
+text stops before saving; blank/NA and nonfinite coordinates remain unlocated.
+Existing nonempty destinations and duplicate/unknown options are rejected.
+No CRS, units, dates, physical identity, independence or dilution is inferred.
+
+## Link records to recorded-position review groups
+
+```r
+support <- sampling_support_audit(
+  metadata, group_cols = "state", x_col = "long_wgs84", y_col = "lat_wgs84",
+  include_memberships = TRUE
+)
+support$memberships
+support$coordinate_groups
+```
+
+This opt-in requires1.2.0.9004. It preserves every original metadata row/column,
+including raw IDs and unlocated records. Exact numeric coordinate pairs define
+global review groups across analysis domains. Existing domain-specific locations
+and the other default support-audit components remain unchanged. Coordinates must
+use a common reference system; no transformation or physical-site identity is inferred.
+
+Missing coordinates remain unlocated with NA group/count fields. Position labels
+are cohort-specific, stable under row reordering, and are not permanent site IDs.
+Repeated positions receive a review flag; singletons are not certified independent.
+No records are collapsed or assigned weights. These memberships can support
+explicit decisions about which records to hold together in later validation.
+
+## Audit source-summary precision
+
+For best-value tables with a USGS `summary` column, compare the reported number
+with its first explicitly associated source entry:
+
+```r
+source_review <- audit_summary_precision(chemistry)
+source_review[c("lab_id", "species", "unit", "qvalue",
+                "summary_precision_status", "summary_numeric_delta")]
+
+reviewed_run <- analyze_elements(chemistry, audit_source_precision = TRUE)
+reviewed_run$source_precision_summary
+```
+
+Batch auditing requires geoCensor **1.2.0.9002** or newer; the current installed
+commands require **1.2.0.9003** so they use guarded upper-limit recovery.
+The opt-in adds `source_precision` and `source_precision_summary`; existing
+estimates, validation, method tables and spatial weights stay unchanged. The
+row table retains requested input order, raw IDs/values/units and all original
+chemistry columns. Metadata-only grouping columns are appended when requested.
+Candidates and numeric differences retain each row's original units, while
+estimates continue to use ug/kg. Counts include input rows excluded from fitting.
+
+Differences are source-representation evidence, not estimated analytical error.
+No candidate replaces an estimator input. Missing summaries, malformed entries,
+method mismatches, UNKNOWN labels and coding conflicts stay explicit. Existing
+enabling the audit does not change parser recovery; it compares the original
+input before recovery. A matching value does not certify analytical accuracy.
+
+Both installed commands accept `--audit-source-precision`, alone or with
+`--stratify-methods`; the all-element command can also combine it with
+`--method-overlap`. They export `source_precision.csv` and
+`source_precision_summary.csv` plus the corresponding RDS components only when
+requested. Choose a new output directory for each run.
 
 ## Review analytical methods
 
@@ -200,7 +288,7 @@ still assume independent observations and a suitable lognormal model.
 
 Both installed commands accept `--stratify-methods` and then export
 `method_estimates.csv` as well as the usual outputs. This feature requires
-version 1.2.0 or newer.
+version 1.2.0.9003 or newer.
 Choose a new or empty output directory for each command run; existing results
 are preserved so optional tables and plots cannot be confused with a later run.
 
@@ -253,7 +341,7 @@ for the intended spatial domain. The batch audit uses sorted unique cell sizes.
 The all-element command accepts `--method-overlap` when metadata, projected
 coordinate columns and cell sizes are supplied. It exports
 `method_overlap_support.csv`, `method_coverage.csv` and `method_overlap.csv`, plus
-the corresponding RDS components. This command now requires version 1.2.0
+the corresponding RDS components. This command now requires version 1.2.0.9003
 or newer. Missing method/coordinate information stays explicit in those tables.
 
 ## Audit sampling support before pooling
@@ -496,9 +584,14 @@ API, and weighted routine confidence limits remain missing.
 Some NGDB CSV exports round `qvalue` to two decimal places, hiding the
 upper-censoring suffix. When the first best-ranked value in `summary` contains
 an explicit suffix and rounds to the reported qvalue, the builders recover
-that upper limit. The original `qvalue_raw` is preserved and `censoring_source`
-records the recovery. Ordinary values ending in `.11` are not inferred to be
-censored from qvalue alone.
+that upper limit only when the first entry is well formed, a nonblank/non-UNKNOWN
+method matches, and both encodings are usable and compatible. The original
+`qvalue_raw` is preserved and `censoring_source` records the recovery.
+`summary_recovery_status` in long builder output records recovery or its blocking
+reason. Blocked recovery leaves the original qvalue/qualifier coding intact;
+it does not borrow another method's limit or certify the original measurement.
+This guard is new in1.2.0.9003 and can change previously unguarded recovery.
+Ordinary values ending in `.11` are not inferred to be censored from qvalue alone.
 
 The MLE then represents left-censored observations as the interval `(0, LOD]`,
 right-censored as `(ULOD, Inf)`, and detections as exact, fitting a lognormal by

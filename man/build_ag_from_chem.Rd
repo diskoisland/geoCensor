@@ -21,8 +21,13 @@ detected_val, left_cen, left_limit, right_cen, right_limit, value_unit.
 Supported mass-fraction units are ppm, mg/kg, ppb, ug/kg (including micro
 symbols), pct, and percent. Duplicate sample rows are retained.
 If \code{summary} contains an explicit upper-censoring suffix in its first
-(best-ranked) analysis and that value rounds to the reported qvalue, its
-censoring information is recovered. \code{qvalue_raw} retains the original value;
+(best-ranked) analysis, that value rounds to the reported qvalue, and a known
+method matches with compatible usable coding, its censoring is recovered.
+Missing/UNKNOWN methods, mismatches, malformed entries and coding conflicts
+block recovery. The original qvalue/qualifier are then parsed as reported.
+\code{summary_recovery_status} records recovery, unnecessary recovery, no upper
+evidence, or a specific blocking reason; it does not certify measurement QA.
+\code{qvalue_raw} retains the original value;
 \code{censoring_source} records whether the limit came from summary or qvalue.
 \code{\link[=flag_analytical_methods]{flag_analytical_methods()}} adds separate method-review fields. Method
 concerns do not change \code{validation_status}, censoring fields or values;

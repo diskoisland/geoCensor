@@ -1,3 +1,55 @@
+# geoCensor 1.2.0.9005 (development)
+
+* Add `audit_sampling_file()` and installed `audit_sampling_support.R` for
+  reproducible metadata audits and optional position memberships. Export raw
+  metadata, review tables, coordinate-conversion provenance, RDS and run/session
+  records. Preserve raw text and leading-zero IDs; declare analysis missing markers.
+* Parse only explicit numeric coordinate text, retaining nonfinite/missing values
+  as unlocated and rejecting invalid text before output creation. Preserve
+  nonempty destinations and check input fingerprints before saving. No coordinate
+  system, units, dates, physical identity, weights or dilution factors inferred.
+
+# geoCensor 1.2.0.9004 (development)
+
+* Add optional `sampling_support_audit(..., include_memberships = TRUE)` with
+  original-row memberships and exact-coordinate groups across analysis domains.
+  Preserve raw IDs/fields and unlocated rows. Missing coordinates never form
+  one artificial group, and unavailable group sizes remain NA.
+* Keep the four default components unchanged. New cohort-specific position IDs
+  do not establish physical sites, replicates or independence; no observations
+  are collapsed or weighted. Exact numeric grouping avoids text-rounding merges.
+
+# geoCensor 1.2.0.9003 (development)
+
+* Require a known matching analytical method, well-formed first entry and
+  compatible usable coding before recovering rounded summary upper limits.
+  Missing/UNKNOWN methods, mismatches and conflicting or malformed evidence
+  now block recovery. Original qvalue and qualifier are retained and parsed
+  according to their own coding; another method's limit is never borrowed.
+* Add `summary_recovery_status` to builder observations to distinguish recovery,
+  original upper coding, absent evidence and specific blocking reasons. This
+  intentional compatibility change can alter previous unguarded recoveries;
+  correctly associated recovery and source-precision auditing remain available.
+  No dilution correction or analytical-QA certification is inferred.
+* Require installed1.2.0.9003 for both command workflows, including runs without
+  source auditing, so new scripts cannot silently use an older unguarded parser.
+
+# geoCensor 1.2.0.9002 (development)
+
+* Integrate the source-summary precision audit into the active package. Add
+  opt-in `analyze_elements(..., audit_source_precision = TRUE)` row-level review
+  and element/domain/status counts. Retain original requested chemistry rows,
+  native units and raw IDs; preserve all existing estimation outputs.
+* Expose `--audit-source-precision` in both installed analysis commands, exporting
+  the two additional tables and RDS components only when requested.
+* Treat literal UNKNOWN method labels as unresolved association in the audit,
+  including when both reported and summary labels say UNKNOWN. No source-value
+  candidate is exposed from unspecified method identity.
+
+# geoCensor 1.2.0.9001 (development)
+
+* Add `audit_summary_precision()` to expose first-entry source numeric differences and upper-limit evidence only when method association and censoring checks permit. Preserve every input row and value; candidates are review evidence and never replace estimator inputs.
+
 # geoCensor 1.2.0
 
 ## Analytical methods and geographic support

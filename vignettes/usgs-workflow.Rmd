@@ -154,13 +154,17 @@ Unknown metadata must not be interpreted as evidence of equivalence.
 ```{r parsing}
 ag <- build_element(chemistry, "Ag")
 ag[c("lab_id", "qvalue_raw", "detected_val", "left_cen", "right_cen",
-     "validation_status", "censoring_source")][1:6, ]
+     "validation_status", "censoring_source", "summary_recovery_status")][1:6, ]
 ```
 
 Supported mass-fraction units are converted to ug/kg. Invalid values and
 unsupported units receive explicit validation reasons. When an explicit
-upper-censor marker in the first summary analysis agrees with rounded qvalue,
-the builder recovers it while retaining the original reported value.
+upper-censor marker in a well-formed first summary analysis agrees with rounded
+qvalue, a known method matches and coding is compatible, the builder recovers it
+while retaining the original reported value. Missing/UNKNOWN or mismatched methods
+and incompatible coding block recovery; the original value/qualifier are parsed
+as reported and summary_recovery_status explains the block. This does not certify
+analytical precision or reliability.
 
 ```{r join}
 ag_main <- join_soil_main(ag, metadata,
@@ -332,6 +336,112 @@ The existing fitted/nonparametric censored CDF display can be used for model
 comparison where fitting is appropriate. A relative AIC winner does not prove
 model adequacy. Thinning records until a normality test stops rejecting would
 remove test power rather than establish an adequate model.
+
+## Keep recorded-position memberships explicit
+
+The support audit can return each original metadata row's membership in an
+exact-coordinate review group:
+
+```{r position-memberships}
+position_support <- sampling_support_audit(
+  metadata, group_cols = "state", x_col = "x_m", y_col = "y_m",
+  include_memberships = TRUE
+)
+head(position_support$memberships[c("lab_id", "recorded_position_group",
+  "n_records_at_position", "position_membership_status", "review_shared_position")])
+head(position_support$coordinate_groups)
+stopifnot(identical(position_support$memberships[names(metadata)], tibble::as_tibble(metadata)))
+```
+
+The two optional tables are available in1.2.0.9004. Groups span analysis-domain
+labels, while the existing locations table remains domain-specific. Group IDs are
+stable under row reordering within a cohort, not durable physical-site identifiers.
+Missing/nonfinite coordinates remain unlocated with unknown group membership and
+size. Singletons are not cleared for spatial independence, and shared positions
+do not prove sample equivalence or replication. Nothing is collapsed, filtered,
+weighted or automatically assigned to validation folds.
+
+## Save a metadata audit with its source and conversion record
+
+The installed file workflow reads all source fields as text, preserves a raw
+snapshot and records coordinate conversion explicitly. This synthetic example
+uses temporary paths:
+
+```{r sampling-file}
+metadata_csv <- tempfile(fileext = ".csv")
+readr::write_csv(metadata, metadata_csv, na = "")
+support_folder <- tempfile("geocensor_support_")
+saved_support <- audit_sampling_file(metadata_csv, support_folder,
+  group_cols = "state", x_col = "x_m", y_col = "y_m", include_memberships = TRUE)
+head(saved_support$coordinate_conversion)
+list.files(support_folder)
+stopifnot(nrow(saved_support$input_metadata) == nrow(metadata))
+```
+
+In1.2.0.9005, `audit_sampling_file()` and the installed
+`examples/audit_sampling_support.R` command export the same raw metadata, audit,
+conversion and run/session records. Trimmed blank and literal NA values are
+missing in the analysis copy; source text remains in the raw table and membership
+columns. Invalid coordinate strings stop the run before output creation.
+Coordinate units/reference systems are supplied by the user, not guessed.
+Choose a new or empty output directory to preserve previous results.
+
+## Keep source-value review separate from estimation
+
+Some best-value exports differ in numeric precision from their associated
+source-summary entries. Review these differences without selecting a replacement:
+
+```{r source-precision-review}
+source_example <- tibble::tibble(
+  lab_id = c("001", "002", "003", "004"),
+  species = c("Mn", "Mn", "S", "Ag"),
+  unit = c("pct", "pct", "pct", "ppm"),
+  qvalue = c("0.05", "0.06", "10.11", "-2"),
+  amethod = c("AES_HF", "UNKNOWN", "CB_IRC", "AES_HF"),
+  summary = c("0.054, AES_HF", "0.064, UNKNOWN", "10.11111, CB_IRC", "-2, AES_HF")
+)
+source_check <- analyze_elements(source_example, audit_source_precision = TRUE)
+source_check$source_precision[c("lab_id", "species", "unit", "qvalue",
+  "summary_numeric_delta", "summary_precision_status")]
+source_check$source_precision_summary
+stopifnot(identical(source_check$source_precision[names(source_example)], source_example))
+```
+
+The row-level audit preserves original requested order, IDs and chemistry.
+Its numeric differences and candidates use the input units, here pct or ppm;
+estimator outputs use ug/kg. UNKNOWN labels cannot establish method association.
+Missing summaries and unresolved coding remain explicit. The summary counts all
+input rows, including any excluded from fitting, and no audit rows are invented
+for absent species. Metadata-only grouping fields are appended if requested.
+
+No source-audit candidate replaces an estimator input, and enabling that audit
+does not change the method/coding guard on upper-limit recovery. A precision difference does not quantify
+measurement error, while agreement does not certify measurement reliability.
+Small examples here have insufficient information for fitting; the audit remains
+available independently. Both installed commands expose the same opt-in as
+`--audit-source-precision` and export the two extra CSV/RDS components. Their
+batch audit requires installed version1.2.0.9002 or newer; current command scripts
+require1.2.0.9003 so they use the recovery safeguard.
+
+The recovery safeguard itself requires1.2.0.9003. Here the reported value and
+summary are identical across rows, but method association differs:
+
+```{r upper-recovery-guard}
+recovery_example <- tibble::tibble(
+  lab_id = c("001", "002", "003"), species = "S", unit = "pct",
+  qvalue = "10.11", amethod = c("CB_IRC", "AES_HF", NA_character_),
+  summary = "10.11111, CB_IRC"
+)
+recovered <- build_element(recovery_example, "S", to_ugkg = FALSE)
+recovered[c("lab_id", "qvalue_raw", "detected_val", "right_limit",
+  "censoring_source", "summary_recovery_status")]
+stopifnot(identical(recovered$right_cen, c(TRUE, FALSE, FALSE)))
+```
+
+The last two rows retain their original uncensored coding and a separate review
+status; they are not converted to another method's upper limit. Explicit original
+G/> or suffix-coded upper limits remain available without a summary. No dilution
+factor is inferred or applied.
 
 ## Treat spatial intervals as experimental
 

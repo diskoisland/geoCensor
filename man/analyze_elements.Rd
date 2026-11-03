@@ -16,7 +16,8 @@ analyze_elements(
   min_exact_review = 10,
   min_exact_fraction_review = 0.05,
   stratify_methods = FALSE,
-  audit_method_overlap = FALSE
+  audit_method_overlap = FALSE,
+  audit_source_precision = FALSE
 )
 }
 \arguments{
@@ -54,6 +55,11 @@ element/domain. The default FALSE leaves the six existing components intact.}
 method_coverage and method_overlap tables from \code{\link[=method_spatial_overlap]{method_spatial_overlap()}}
 within each element/domain. Requires cell_sizes and projected x_col/y_col.
 Independent of stratify_methods; default FALSE leaves existing outputs intact.}
+
+\item{audit_source_precision}{If TRUE, append \code{source_precision} with the
+requested original chemistry rows and \code{\link[=audit_summary_precision]{audit_summary_precision()}} fields,
+plus \code{source_precision_summary} counts by element/domain/status. Default
+FALSE leaves existing components intact. No candidate replaces model inputs.}
 }
 \value{
 A list of tibbles: estimates (input/exclusion counts and fit results),
@@ -68,6 +74,12 @@ input/exclusion counts, estimates and the same information-review fields.
 With audit_method_overlap = TRUE, three additional components record data
 availability, coverage by method/scale and named-method pair overlap. They
 use sorted unique cell sizes and the same n_offsets value as declustering.
+With audit_source_precision = TRUE, source_precision retains requested input
+row order, raw IDs/values/units and all original chemistry columns. Grouping
+columns available only in metadata are appended using the validated ID join.
+Its candidates and numeric deltas remain in each row's original units;
+estimator outputs continue to use ug/kg. source_precision_summary counts all
+requested input rows, including those excluded from numerical estimation.
 }
 \description{
 Runs validation, censored lognormal estimation, distribution comparisons,
@@ -110,4 +122,12 @@ retaining original input and unlocated/excluded counts. Missing comparisons
 stay NA. Shared cells do not establish paired samples or analytical agreement;
 grid-placement ranges are not confidence limits. Neither diagnostic modifies
 existing estimates, chooses a method or changes declustering weights.
+
+Source-precision review compares the original reported value with the first
+explicitly associated summary entry before any existing parser recovery or unit
+conversion. It does not change that recovery, select a representation, certify
+analytical reliability or filter observations. Missing summaries and unresolved
+methods remain explicit. Requested species with no input rows produce no
+phantom audit records or status counts. Grouping names must not conflict with
+the eight source-audit fields or their status-count field \code{n_observations}.
 }
