@@ -21,6 +21,49 @@ This example uses synthetic data so it can run without downloading the NGDB.
 Its coordinates and concentrations are illustrative, not observations or
 estimates for the named states.
 
+## Read the outcomes before interpreting an estimate
+
+This compact example illustrates four outcomes from one synthetic sampling
+medium. The domain labels are supplied for demonstration; they do not establish
+real sampling support or geological populations. Repeated coordinates illustrate
+clustering. Identifiers remain text, and all reported results remain present.
+
+```{r four-outcomes}
+library(geoCensor)
+quick_chemistry <- data.frame(
+  lab_id = sprintf("%04d", 1:32), species = "Ag", unit = "ppm",
+  domain = rep(c("varying_codes", "all_below_limit", "constant_codes", "missing_method"), each = 8),
+  qvalue = c("-1", "1", "2", "3", "5", "8", "13", "21",
+             rep("-1", 8), rep("10", 8), as.character(1:8)),
+  amethod = rep(c("ES_SQ", "AES_HF", "ES_SQ", NA_character_), each = 8),
+  x_m = rep(c(0, 0, 0, 0, 10000, 20000, 30000, 40000), 4), y_m = 0
+)
+quick <- analyze_elements(quick_chemistry, group_cols = "domain",
+  cell_sizes = 10000, x_col = "x_m", y_col = "y_m", n_offsets = 2)
+knitr::kable(quick$estimates[c("domain", "n_total", "n_exact", "method", "geomean",
+  "method_review_status")], digits = 3)
+```
+
+The varying-code estimate remains conditional on the recorded coding and working
+model; its semiquantitative flag still requires review. All-left data retain
+their detection limits with a missing model estimate. Constant uncensored codes
+have no finite positive-scale lognormal maximum, so `failed_fit` preserves a
+missing estimate rather than numerical precision. Missing method information
+stays unresolved even when a model can be fitted. None of these statuses turns
+missing information into a zero concentration.
+
+```{r four-outcomes-declustering}
+knitr::kable(quick$declustering[c("domain", "n_total", "unweighted_geomean", "geomean",
+  "ci_low", "ci_high")], digits = 3)
+```
+
+Weighted and unweighted estimates here use the same valid chemistry/coordinate
+records. The weighted confidence limits stay missing. The weights describe
+occupied cells; they do not establish independent observations, measurement
+precision or concentrations in unsampled terrain. The remaining sections show
+how to review inputs, methods and spatial support before using this workflow
+with actual NGDB records.
+
 ## Start with one sampling medium
 
 Real input tables contain one selected chemistry result per sample and species,
