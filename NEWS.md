@@ -1,3 +1,15 @@
+# geoCensor development 1.1.0.9004
+
+* Reject zero-scale likelihood boundaries explicitly in lognormal estimates,
+  quantile summaries and fitted plots. When every usable interval includes the
+  same uncensored-coded value, numerical roundoff can otherwise produce a
+  spurious positive scale and unstable success/failure status. Retain records,
+  counts and method review while leaving fitted values unavailable.
+* Exclude the same boundary from estimated-scale distribution comparisons with
+  an explicit message. Fixed-scale exponential/Rayleigh fits and empirical
+  censoring bounds remain available under their existing rules. No precision
+  tolerance, reporting interval or concentration is inferred.
+
 # geoCensor development 1.1.0.9003
 
 * Add optional `analyze_elements(..., audit_method_overlap = TRUE)` to append
