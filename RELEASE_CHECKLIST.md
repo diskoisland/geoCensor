@@ -1,65 +1,50 @@
-# geoCensor 1.1.0 release validation
+# geoCensor 1.2.0 release candidate validation
 
-Prepared November 1, 2026. Release record and downloadable assets:
-[v1.1.0](https://github.com/diskoisland/geoCensor/releases/tag/v1.1.0).
+Prepared November 2, 2026. Candidate review: [PR #4](https://github.com/diskoisland/geoCensor/pull/4).
+The checked zero-scale guard from [PR #5](https://github.com/diskoisland/geoCensor/pull/5)
+is combined into the candidate. This checklist describes preparation, not a
+published release. Published assets are on the [releases page](https://github.com/diskoisland/geoCensor/releases).
 
 ## Scope and compatibility
 
-USGS censoring/data-integrity improvements, multi-element workflows,
-descriptive declustering/support diagnostics and empirical censoring bounds.
-Duplicate sample/element pairs must be selected before widening; quantile
-summaries now distinguish insufficient data and failed fits. Default successful
-quantile output names/order and concentration units are preserved.
+Method-review propagation, optional within-method summaries, geographic method
+coverage/overlap, safe output-directory handling, lossless large-grid keys and
+explicit zero-scale fitting-boundary rejection. See NEWS.md for additive output
+fields and interpretation. The installed commands require version 1.2.0.
 
-Ordinary model intervals assume independent observations and an appropriate
-lognormal model. Weighted routine limits remain NA. Spatial inference is
-experimental, and research routines remain outside the installed API.
+Raw records and empirical bounds remain available when parametric fitting is
+unavailable. No reporting-class precision or missing metadata is inferred.
+Ordinary limits depend on unvalidated model/independence assumptions; weighted
+routine limits remain NA and spatial limits remain experimental. Method-specific
+declustering and other research routines remain outside the installed API.
 
-## Validation record
+## Evidence and final checks
 
-The candidate passed 77 tests / 410 expectations with no failures, errors,
-warnings or skips. Installed single/all-element examples passed on synthetic
-data, retaining leading-zero IDs, unsupported/all-left statuses and missing
-weighted confidence limits. The final release archive passed a fresh
-`R CMD build --no-manual` and `R CMD check --no-manual` (Status: OK), including
-vignette creation/rebuilding and the full package test suite.
+The integrated guard passed 123 tests / 831 expectations, no failures/errors/
+warnings/skips, plus a full local package check including vignettes and all five
+platform/R jobs. Independent observational studies retained 95,323 SC results;
+the guarded method-specific study reconciled 7,035 model cases and every weight.
+These are numerical/source checks, not validation of statistical interval coverage.
 
-The final package's R, help, tests, installed examples and vignette sources are
-identical to the checked candidate. Final installed-package changes are only
-the README/NEWS release wording; citation metadata adds the release date.
-The final source stage contains 97 files and its archive 101 files, including
-generated vignette material. The archive excludes PFAS, source data, papers,
-research scripts and generated research outputs.
+The final release version, installed commands and polished vignette require a
+fresh exact-source archive build/check, installed single/all-element smoke checks,
+archive-content/source fingerprints and five final-head platform checks. Detailed
+receipts and archive SHA256 are recorded with the prepared artifact outside the
+package; no passing status is inferred from an older head. The archive excludes
+private working notes, papers, raw data, generated outputs and research scripts.
 
-Archive SHA-256:
+## Publication gates
 
-`bfd47d1d89828b8cd87efe04a835cdbddb241cefaa12112d9e919fb1cb1232e2`
+Before any tag, confirm the final reviewed head and exact archive match the
+validation receipt. A normal merge to main must preserve the checked tree, and
+all five checks on that main commit must pass. Only then create a new annotated
+version tag pinned to that commit and publish the checked archive, checksums and
+exact-commit validation receipt. Never force-update an existing version tag.
+Verify downloaded release asset bytes. This preparation step makes no main merge,
+tag or release. Private development/literature notes remain local and untracked.
 
-## Review, checks and publication gates
+## Previous release
 
-[PR #1](https://github.com/diskoisland/geoCensor/pull/1) records the review.
-Both [candidate](https://github.com/diskoisland/geoCensor/actions/runs/41385826608)
-and [documentation-head](https://github.com/diskoisland/geoCensor/actions/runs/41388359960)
-matrices passed all five jobs: macOS/current R, Windows/current R,
-Ubuntu/current R, Ubuntu/oldrel-1 and Ubuntu/devel.
-
-Finalization requires the final metadata head's five checks to pass, then a
-normal merge matching that exact PR head. The merged tree must match the checked
-release tree and all five main-branch checks must pass before tagging.
-Publication uses an annotated `v1.1.0` tag pinned to that merge commit, with no
-force update or deletion. The release includes the checked archive, checksums
-and an exact-commit validation receipt. Downloaded asset bytes are verified.
-
-The release's `VALIDATION.md` asset records the final head, merge commit,
-workflow links and archive checksum. Detailed research records and `output/`
-artifacts are maintained locally and remain unbundled.
-
-
-## Workflow input correction
-
-Before tagging, the initial main run exposed an unsupported `check_args`
-workflow input. The official action takes `args`; its default already matched
-our intended `c("--no-manual", "--as-cran")`, so earlier checks ran as intended.
-The input name was corrected through a separate review change. Final publication
-is gated on green checks of the corrected head and its merged main commit.
-The checked package files/archive are unchanged by this configuration-only fix.
+The unchanged [v1.1.0 release](https://github.com/diskoisland/geoCensor/releases/tag/v1.1.0)
+retains its original validation assets. Its source archive SHA256 is
+bfd47d1d89828b8cd87efe04a835cdbddb241cefaa12112d9e919fb1cb1232e2.

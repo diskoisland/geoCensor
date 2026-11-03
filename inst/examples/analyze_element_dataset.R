@@ -11,8 +11,8 @@ if (length(args) != 3L) {
        call. = FALSE)
 }
 suppressPackageStartupMessages(library(geoCensor))
-if (utils::packageVersion("geoCensor") < "1.1.0.9001") {
-  stop("Install geoCensor 1.1.0.9001 or newer to use this development workflow.", call. = FALSE)
+if (utils::packageVersion("geoCensor") < "1.2.0") {
+  stop("Install geoCensor 1.2.0 or newer to use this workflow.", call. = FALSE)
 }
 output_dir <- args[3]
 check_output_directory <- function() {

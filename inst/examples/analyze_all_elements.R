@@ -21,8 +21,8 @@ if (audit_method_overlap && length(args) < 6L) {
   stop("--method-overlap requires metadata, projected x_col/y_col and cell_sizes", call. = FALSE)
 }
 suppressPackageStartupMessages(library(geoCensor))
-if (utils::packageVersion("geoCensor") < "1.1.0.9003") {
-  stop("Install geoCensor 1.1.0.9003 or newer to use this development workflow.", call. = FALSE)
+if (utils::packageVersion("geoCensor") < "1.2.0") {
+  stop("Install geoCensor 1.2.0 or newer to use this workflow.", call. = FALSE)
 }
 output_dir <- args[2]
 check_output_directory <- function() {

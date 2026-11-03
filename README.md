@@ -2,8 +2,8 @@
 
 **Censoring-aware analysis of USGS National Geochemical Database (NGDB) data.**
 
-Development source version **1.1.0.9003**. The published stable version is
-[v1.1.0](https://github.com/diskoisland/geoCensor/releases/tag/v1.1.0). See
+Source version **1.2.0**. Published versions and downloadable assets are listed
+on the [releases page](https://github.com/diskoisland/geoCensor/releases). See
 [NEWS.md](NEWS.md) for changes and compatibility notes.
 
 I wrote geoCensor for working with USGS National Geochemical Database tables where a lot of the useful information is tucked inside detection limits, qualifiers, and non-detects. Those details matter: in the NGDB, detection limits vary by method and over time, so dropping non-detects or replacing everything with LOD/2 can move the center of the data in ways that are hard to see later.
@@ -13,7 +13,11 @@ The package turns USGS `qvalue` and `qualifier` fields into concentration interv
 To generate the MLE:
 1. non-detects were coded as `(0, LOD]`;
 2. greater-than values were coded as `(ULOD, Inf)`; and
-3. measured detections were treated as exact concentrations.
+3. unqualified detections were treated as point observations under the working model.
+
+That last coding rule does not certify measurement precision. Documented
+semiquantitative methods retain review flags; reporting-class bounds are not
+inferred from a method label.
 
 The lognormal model is fit with `survival::survreg(..., dist = "lognormal")`, and `exp(meanlog)` is used as the geometric mean.
 
@@ -36,10 +40,17 @@ open it with `vignette("usgs-workflow", package = "geoCensor")`.
 ## Installation
 
 Release changes and compatibility notes are recorded in [NEWS.md](NEWS.md).
+The command below installs the current public main branch. Check the installed
+version before using the versioned example commands. A release candidate can
+also be installed directly from its checked source archive.
 
 ```r
 # install.packages("remotes")
 remotes::install_github("diskoisland/geoCensor")
+packageVersion("geoCensor")
+
+# Alternatively, after obtaining the checked 1.2.0 source archive:
+# install.packages("geoCensor_1.2.0.tar.gz", repos = NULL, type = "source")
 ```
 
 ## Quick start
@@ -64,11 +75,14 @@ head(gm_by_state)        # state, n_total, n_left, n_right, geomean, ci_low, ci_
 coverage_by_state <- spatial_coverage_by_state(ag_main)
 gm_by_state <- dplyr::left_join(gm_by_state, coverage_by_state, by = "state")
 
-# 5. National pooled estimate
-fit_cen_lognorm(ag_main)
+# 5. Descriptive pooled fit for the supplied records; review the domain first
+pooled <- fit_cen_lognorm(ag_main)
+pooled
 
-# 6. Inspect the fitted lognormal model
-plot_lognormal_fit(ag_main)
+# 6. Inspect the fitted model when estimation is available
+if (pooled$method == "survreg_lognormal_MLE_L+R") {
+  plot_lognormal_fit(ag_main)
+}
 
 # 7. Map / rank
 plot_ranked_bar(gm_by_state)
@@ -101,7 +115,7 @@ chemistry or best-value CSV:
 Rscript inst/examples/analyze_element_dataset.R data/ngdbsoil/bestvalue.csv Ag output/Ag
 ```
 
-This requires the installed geoCensor package. Replace `Ag` with another element
+This requires installed geoCensor 1.2.0 or newer. Replace `Ag` with another element
 symbol. The workflow converts supported units (`ppm`, `mg/kg`, `ppb`, `ug/kg`, micro-symbol equivalents, and percent units) to ug/kg and
 exports normalized observations, the pooled estimate, censored distribution
 comparisons, a fitted CDF plot when estimation succeeds, serialized results,
@@ -145,7 +159,10 @@ Direct `fit_cen_lognorm()` and `fit_lognorm_with_quants()` calls, and
 and zero-weight exclusions use the same eligible subset as their fit.
 “Used” means eligible input even when the fit is insufficient or fails.
 Plots include method-review counts in saved captions and reject numerical
-fit failures before drawing a fitted curve.
+fit failures before drawing a fitted curve. When every usable interval includes
+the same uncensored-coded value, a positive-scale lognormal maximum does not
+exist: the fitted mean, limits and quantiles remain missing, and no fitted curve
+is drawn. Records, method flags and empirical censoring bounds remain available.
 Distribution comparisons retain method counts/status for every candidate,
 including failed or insufficient fits. Empirical CDF bounds append the same
 review fields to `support` using their own valid, positive-weight subset.
@@ -183,7 +200,7 @@ still assume independent observations and a suitable lognormal model.
 
 Both installed commands accept `--stratify-methods` and then export
 `method_estimates.csv` as well as the usual outputs. This feature requires
-development version 1.1.0.9001 or newer.
+version 1.2.0 or newer.
 Choose a new or empty output directory for each command run; existing results
 are preserved so optional tables and plots cannot be confused with a later run.
 
@@ -236,7 +253,7 @@ for the intended spatial domain. The batch audit uses sorted unique cell sizes.
 The all-element command accepts `--method-overlap` when metadata, projected
 coordinate columns and cell sizes are supplied. It exports
 `method_overlap_support.csv`, `method_coverage.csv` and `method_overlap.csv`, plus
-the corresponding RDS components. This command now requires version 1.1.0.9003
+the corresponding RDS components. This command now requires version 1.2.0
 or newer. Missing method/coordinate information stays explicit in those tables.
 
 ## Audit sampling support before pooling
@@ -526,7 +543,7 @@ The geoCensor package **does not include geochemical data**. Instead, it is desi
 If you use geoCensor, please cite it. The repository includes citation metadata in `CITATION.cff`:
 
 > Edwards, R. (2026). *geoCensor: Censoring-Aware Analysis of USGS National
-> Geochemical Database Data* (version 1.1.0). https://github.com/diskoisland/geoCensor
+> Geochemical Database Data* (version 1.2.0). https://github.com/diskoisland/geoCensor
 
 ## License
 
