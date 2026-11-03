@@ -56,6 +56,10 @@ converged and excluded from delta AIC, Akaike weights, and best-fit flags.
 Raw AIC values are retained for inspection. Invalid censoring limits are
 excluded and contradictory censoring flags raise an error, as in
 \code{\link[=fit_cen_lognorm]{fit_cen_lognorm()}}.
+Estimated-scale families with a common uncensored point in every interval
+have no finite positive-scale maximum and are excluded with message
+\code{zero_scale_boundary}. Fixed-scale exponential and Rayleigh models retain
+their ordinary fitting rules. Supplied values are not rounded or discarded.
 
 AIC comparison is not a formal proof that a distribution is true. It is a
 likelihood-based diagnostic for whether the lognormal model fits better or
