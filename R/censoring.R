@@ -20,6 +20,9 @@
 #' Insufficient samples return `method = "insufficient_data"`; fitting errors,
 #' warnings, or invalid parameter estimates return `method = "failed_fit"`.
 #' Both cases return missing geometric means and confidence limits.
+#' If all usable censoring intervals share a single uncensored-coded value,
+#' the likelihood has no finite positive-scale maximum. Such boundary cases
+#' return `failed_fit` even if numerical rounding lets the solver report success.
 #'
 #' Unweighted confidence limits assume independent observations and an
 #' appropriate lognormal model. They do not account for spatial dependence
@@ -117,6 +120,7 @@ fit_cen_lognorm <- function(
 # Shared numerical guard for public lognormal summaries. Censoring intervals
 # and minimum observation counts are validated by callers before fitting.
 .fit_validated_censored_lognormal <- function(lower, upper, weights) {
+  if (.censored_zero_scale_boundary(lower, upper)) return(NULL)
   tryCatch(
     withCallingHandlers({
       fit <- survival::survreg(
@@ -130,4 +134,12 @@ fit_cen_lognorm <- function(
     }, warning = function(w) stop(conditionMessage(w), call. = FALSE)),
     error = function(e) NULL
   )
+}
+
+# At least one point interval and a nonempty common intersection imply a single
+# common point. Its density diverges as the fitted scale approaches zero while
+# every censored probability remains bounded away from zero. No tolerance or
+# reporting precision is inferred; only exact equality in the supplied coding.
+.censored_zero_scale_boundary <- function(lower, upper) {
+  length(lower) > 0L && any(lower == upper) && max(lower) == min(upper)
 }

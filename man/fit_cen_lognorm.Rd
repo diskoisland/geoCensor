@@ -50,6 +50,9 @@ censoring directions raise an error. Missing flags are treated as false.
 Insufficient samples return \code{method = "insufficient_data"}; fitting errors,
 warnings, or invalid parameter estimates return \code{method = "failed_fit"}.
 Both cases return missing geometric means and confidence limits.
+If all usable censoring intervals share a single uncensored-coded value,
+the likelihood has no finite positive-scale maximum. Such boundary cases
+return \code{failed_fit} even if numerical rounding lets the solver report success.
 
 Unweighted confidence limits assume independent observations and an
 appropriate lognormal model. They do not account for spatial dependence

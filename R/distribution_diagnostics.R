@@ -86,6 +86,10 @@
 #' Raw AIC values are retained for inspection. Invalid censoring limits are
 #' excluded and contradictory censoring flags raise an error, as in
 #' [fit_cen_lognorm()].
+#' Estimated-scale families with a common uncensored point in every interval
+#' have no finite positive-scale maximum and are excluded with message
+#' `zero_scale_boundary`. Fixed-scale exponential and Rayleigh models retain
+#' their ordinary fitting rules. Supplied values are not rounded or discarded.
 #'
 #' AIC comparison is not a formal proof that a distribution is true. It is a
 #' likelihood-based diagnostic for whether the lognormal model fits better or
@@ -149,7 +153,9 @@ compare_censored_distributions <- function(
       ))
     }
 
-    if (insufficient) {
+    boundary <- !dist %in% c("exponential", "rayleigh") &&
+      .censored_zero_scale_boundary(intervals$lower[intervals$ok], intervals$upper[intervals$ok])
+    if (insufficient || boundary) {
       return(tibble::tibble(
         distribution = dist,
         n_total = intervals$n_total,
@@ -160,7 +166,7 @@ compare_censored_distributions <- function(
         df = NA_real_,
         AIC = NA_real_,
         converged = FALSE,
-        message = "insufficient_data"
+        message = if (insufficient) "insufficient_data" else "zero_scale_boundary"
       ))
     }
 
