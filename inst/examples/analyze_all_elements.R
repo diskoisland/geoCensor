@@ -24,10 +24,10 @@ if (audit_method_overlap && length(args) < 6L) {
   stop("--method-overlap requires metadata, projected x_col/y_col and cell_sizes", call. = FALSE)
 }
 suppressPackageStartupMessages(library(geoCensor))
-required_version <- "1.2.0.9006"
-if (utils::packageVersion("geoCensor") < required_version) {
-  stop("Install geoCensor ", required_version, " or newer to use the requested workflow.", call. = FALSE)
-}
+helper <- system.file("examples", "workflow_requirements.R", package = "geoCensor")
+if (!nzchar(helper)) stop("Install the final geoCensor 1.2.0 release and restart R; this installation lacks workflow support.", call. = FALSE)
+sys.source(helper, envir = environment())
+geocensor_require_workflow("all")
 output_dir <- args[2]
 check_output_directory <- function() {
   if (file.exists(output_dir) && !dir.exists(output_dir)) stop("Output path is not a directory", call. = FALSE)

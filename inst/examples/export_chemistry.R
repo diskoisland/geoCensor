@@ -23,6 +23,9 @@ if (length(args) != 2L) stop(
   "Usage: Rscript export_chemistry.R chemistry.csv new_output_dir [--elements=Ag,Pb] [--chunk-size=10000]",
   call. = FALSE)
 suppressPackageStartupMessages(library(geoCensor))
-if (utils::packageVersion("geoCensor") < "1.2.0.9008") stop("Install geoCensor 1.2.0.9008 or newer", call. = FALSE)
+helper <- system.file("examples", "workflow_requirements.R", package = "geoCensor")
+if (!nzchar(helper)) stop("Install the final geoCensor 1.2.0 release and restart R; this installation lacks workflow support.", call. = FALSE)
+sys.source(helper, envir = environment())
+geocensor_require_workflow("export")
 x <- export_usgs_chemistry(args[1], args[2], elements = elements, chunk_size = chunk_size)
 message("Exported ", x$n_selected, " of ", x$n_input, " data records to ", x$output_dir)

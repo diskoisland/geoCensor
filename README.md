@@ -2,7 +2,7 @@
 
 **Censoring-aware analysis of USGS National Geochemical Database (NGDB) data.**
 
-Development source version **1.2.0.9008**. Published versions and downloadable assets are listed
+Source version **1.2.0**. Published versions and downloadable assets are listed
 on the [releases page](https://github.com/diskoisland/geoCensor/releases). See
 [NEWS.md](NEWS.md) for changes and compatibility notes.
 
@@ -34,25 +34,33 @@ detection limit,” *Environmental Science & Technology* 24(12), 1766-1774,
 
 
 A runnable, synthetic end-to-end example is available in the
-[USGS workflow vignette](vignettes/usgs-workflow.Rmd). Installed packages can
-open it with `vignette("usgs-workflow", package = "geoCensor")`.
+[USGS workflow vignette](vignettes/usgs-workflow.Rmd). For a real-data workflow,
+use the [Upper Illinois case study](vignettes/illinois-case-study.Rmd), covering
+all reported species, sampling-support audits and 5/10/20 km declustering.
+It includes an installed script that selects the project from user-downloaded
+USGS exports without chemistry filtering; raw data are not bundled. The optional
+sf package prepares projected coordinates, or users can supply reviewed
+EPSG:5070 coordinates. Installed packages can open either guide:
+
+```r
+vignette("usgs-workflow", package = "geoCensor")
+vignette("illinois-case-study", package = "geoCensor")
+system.file("examples", "illinois_case_study.R", package = "geoCensor")
+```
 
 ## Installation
 
 Release changes and compatibility notes are recorded in [NEWS.md](NEWS.md).
-The latest published release verified on November 3, 2026 is **v1.1.0**.
-The **1.2.0.9008 development candidate** is under review in the stacked PRs;
-installing `main` does not install that candidate. Choose the version explicitly:
+The versioned installation below targets **v1.2.0**. During release review, use
+the checked source archive; the tag is available only after publication on the
+[releases page](https://github.com/diskoisland/geoCensor/releases).
 
 ```r
 # install.packages("remotes")
-remotes::install_github("diskoisland/geoCensor@v1.1.0")
+remotes::install_github("diskoisland/geoCensor@v1.2.0")
 
-# Or install the exact checked development feature revision from PR #9:
-remotes::install_github("diskoisland/geoCensor@df40fcc283ef2554d2609f28c9c6afdff5087a2c")
-
-# Alternatively, use an obtained and checksum-verified candidate source archive:
-# install.packages("/path/to/geoCensor_1.2.0.9008.tar.gz", repos = NULL, type = "source")
+# Or install an obtained and checksum-verified source archive:
+# install.packages("/path/to/geoCensor_1.2.0.tar.gz", repos = NULL, type = "source")
 ```
 
 Run the selected installation command. After upgrading a package already loaded
@@ -72,14 +80,16 @@ filename is not a package name.
 
 | Installed workflow | Minimum package version |
 | --- | --- |
-| `audit_sampling_support.R` | 1.2.0.9005 |
-| `analyze_all_elements.R` | 1.2.0.9006 |
-| `analyze_element_dataset.R` | 1.2.0.9007 |
-| `export_chemistry.R` | 1.2.0.9008 |
+| `audit_sampling_support.R` | 1.2.0 |
+| `analyze_all_elements.R` | 1.2.0 |
+| `analyze_element_dataset.R` | 1.2.0 |
+| `export_chemistry.R` | 1.2.0 |
 
-These development commands are not supplied by v1.1.0. The pinned feature
-revision is distinct from a published release; see the
-[release checklist](RELEASE_CHECKLIST.md) for the review/publication sequence.
+These commands require the final 1.2.0 capabilities and are not supplied by
+v1.1.0. An earlier local candidate labeled 1.2.0 can lack those features;
+reinstall the checked release and restart R. Commands check capabilities as well
+as the version, so the final release is accepted without silently accepting an
+incomplete candidate. See the [release checklist](RELEASE_CHECKLIST.md).
 
 ## Quick start
 
@@ -143,7 +153,7 @@ chemistry or best-value CSV:
 Rscript inst/examples/analyze_element_dataset.R data/ngdbsoil/bestvalue.csv Ag output/Ag
 ```
 
-This requires installed geoCensor 1.2.0.9007 or newer. Replace `Ag` with another element
+This requires installed geoCensor 1.2.0 or newer. Replace `Ag` with another element
 symbol. The workflow converts supported units (`ppm`, `mg/kg`, `ppb`, `ug/kg`, micro-symbol equivalents, and percent units) to ug/kg and
 exports normalized observations, the pooled estimate, censored distribution
 comparisons, a fitted CDF plot when estimation succeeds, serialized results,
@@ -166,7 +176,7 @@ chemistry <- read_usgs_chemistry("ngdbsoil/bestvalue.csv")
 ```
 
 For an explicit subset of species from a large file, use the optional batch reader
-(version 1.2.0.9007 or newer):
+(version 1.2.0 or newer):
 
 ```r
 selected <- read_usgs_chemistry_select("ngdbsed/chemistry.csv", c("Ag", "Pb"),
@@ -189,7 +199,7 @@ element during import and save a separate `input_record_index.csv` aligned with
 `observations.csv`. Without this option it keeps the whole-file reader. The
 all-element command also keeps its existing default.
 
-For exports that should stay on disk, version **1.2.0.9008** adds a separate
+For exports that should stay on disk, version **1.2.0** adds a separate
 opt-in workflow:
 
 ```r
@@ -243,7 +253,7 @@ run <- audit_sampling_file(
 )
 ```
 
-This workflow requires1.2.0.9005 and a new or empty output directory. It exports
+This workflow requires1.2.0 and a new or empty output directory. It exports
 support/membership tables, raw metadata, coordinate conversions, RDS, input MD5,
 configuration and session information. Fields are read as text to retain IDs and
 formatting. The analysis copy treats trimmed blank/NA as missing; exported raw
@@ -275,7 +285,7 @@ support$memberships
 support$coordinate_groups
 ```
 
-This opt-in requires1.2.0.9004. It preserves every original metadata row/column,
+This opt-in requires1.2.0. It preserves every original metadata row/column,
 including raw IDs and unlocated records. Exact numeric coordinate pairs define
 global review groups across analysis domains. Existing domain-specific locations
 and the other default support-audit components remain unchanged. Coordinates must
@@ -301,8 +311,8 @@ reviewed_run <- analyze_elements(chemistry, audit_source_precision = TRUE)
 reviewed_run$source_precision_summary
 ```
 
-Batch auditing requires geoCensor **1.2.0.9002** or newer. The all-element command
-requires **1.2.0.9006**; the single-element command requires **1.2.0.9007**.
+Batch auditing requires geoCensor **1.2.0** or newer. The all-element command
+requires **1.2.0**; the single-element command requires **1.2.0**.
 The opt-in adds `source_precision` and `source_precision_summary`; existing
 estimates, validation, method tables and spatial weights stay unchanged. The
 row table retains requested input order, raw IDs/values/units and all original
@@ -387,7 +397,7 @@ still assume independent observations and a suitable lognormal model.
 
 Both installed commands accept `--stratify-methods` and then export
 `method_estimates.csv` as well as the usual outputs. This feature requires
-version 1.2.0.9006 or newer.
+version 1.2.0 or newer.
 Choose a new or empty output directory for each command run; existing results
 are preserved so optional tables and plots cannot be confused with a later run.
 
@@ -440,7 +450,7 @@ for the intended spatial domain. The batch audit uses sorted unique cell sizes.
 The all-element command accepts `--method-overlap` when metadata, projected
 coordinate columns and cell sizes are supplied. It exports
 `method_overlap_support.csv`, `method_coverage.csv` and `method_overlap.csv`, plus
-the corresponding RDS components. This command now requires version 1.2.0.9006
+the corresponding RDS components. This command now requires version 1.2.0
 or newer. Missing method/coordinate information stays explicit in those tables.
 
 ## Audit sampling support before pooling
@@ -689,7 +699,7 @@ method matches, and both encodings are usable and compatible. The original
 `summary_recovery_status` in long builder output records recovery or its blocking
 reason. Blocked recovery leaves the original qvalue/qualifier coding intact;
 it does not borrow another method's limit or certify the original measurement.
-This guard is new in1.2.0.9003 and can change previously unguarded recovery.
+This guard is new in1.2.0 and can change previously unguarded recovery.
 Ordinary values ending in `.11` are not inferred to be censored from qvalue alone.
 
 The MLE then represents left-censored observations as the interval `(0, LOD]`,
@@ -735,7 +745,7 @@ The geoCensor package **does not include geochemical data**. Instead, it is desi
 If you use geoCensor, please cite it. The repository includes citation metadata in `CITATION.cff`:
 
 > Edwards, R. (2026). *geoCensor: Censoring-Aware Analysis of USGS National
-> Geochemical Database Data* (development version 1.2.0.9008). https://github.com/diskoisland/geoCensor
+> Geochemical Database Data* (version 1.2.0). https://github.com/diskoisland/geoCensor
 
 ## License
 
