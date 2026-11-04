@@ -14,7 +14,7 @@ if (length(args) != 3L) {
        call. = FALSE)
 }
 suppressPackageStartupMessages(library(geoCensor))
-required_version <- "1.2.0.9003"
+required_version <- "1.2.0.9006"
 if (utils::packageVersion("geoCensor") < required_version) {
   stop("Install geoCensor ", required_version, " or newer to use the requested workflow.", call. = FALSE)
 }
@@ -27,8 +27,7 @@ check_output_directory <- function() {
 }
 check_output_directory()
 
-chemistry <- readr::read_csv(args[1], col_types = readr::cols(lab_id = readr::col_character()),
-                             show_col_types = FALSE)
+chemistry <- read_usgs_chemistry(args[1])
 required <- c("lab_id", "species", "qvalue", "unit")
 if (!all(required %in% names(chemistry))) {
   stop("Missing chemistry columns: ",
@@ -83,6 +82,7 @@ if (audit_source_precision) {
 saveRDS(analysis, file.path(output_dir, "analysis.rds"))
 writeLines(c(
   paste("Input:", normalizePath(args[1])),
+  "Chemistry import: text fields; blank/literal NA missing; malformed CSV rejected.",
   paste("Element:", args[2]),
   "Concentration unit: ug/kg",
   paste("Input rows for element:", nrow(observations)),

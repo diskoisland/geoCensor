@@ -24,7 +24,7 @@ if (audit_method_overlap && length(args) < 6L) {
   stop("--method-overlap requires metadata, projected x_col/y_col and cell_sizes", call. = FALSE)
 }
 suppressPackageStartupMessages(library(geoCensor))
-required_version <- "1.2.0.9003"
+required_version <- "1.2.0.9006"
 if (utils::packageVersion("geoCensor") < required_version) {
   stop("Install geoCensor ", required_version, " or newer to use the requested workflow.", call. = FALSE)
 }
@@ -36,11 +36,30 @@ check_output_directory <- function() {
   }
 }
 check_output_directory()
-read_input <- function(path) readr::read_csv(
-  path, col_types = readr::cols(lab_id = readr::col_character()), show_col_types = FALSE
-)
-chemistry <- read_input(args[1])
-metadata <- if (length(args) >= 3L) read_input(args[3]) else NULL
+chemistry <- read_usgs_chemistry(args[1])
+metadata <- NULL
+if (length(args) >= 3L) {
+  metadata <- readr::read_csv(args[3], col_types = readr::cols(.default = readr::col_character()),
+    na = c("", "NA"), trim_ws = FALSE, name_repair = "check_unique", show_col_types = FALSE, progress = FALSE)
+  if (nrow(readr::problems(metadata))) stop("Metadata CSV parsing problems; resolve malformed records before analysis", call. = FALSE)
+  if (length(args) >= 6L) {
+    for (column in unique(args[4:5])) {
+      if (!column %in% names(metadata)) stop("Missing projected coordinate column: ", column, call. = FALSE)
+      text <- trimws(metadata[[column]])
+      nonfinite <- !is.na(text) & toupper(text) %in% c("INF", "+INF", "-INF", "NAN")
+      regular <- which(!nonfinite)
+      parsed <- readr::parse_double(text[regular], na = c("", "NA"))
+      problems <- readr::problems(parsed)
+      if (nrow(problems)) stop("Invalid numeric coordinate column '", column, "' at input rows: ",
+        paste(utils::head(regular[problems$row], 10L), collapse = ", "), call. = FALSE)
+      value <- rep(NA_real_, length(text))
+      value[regular] <- parsed
+      lookup <- c(INF = Inf, "+INF" = Inf, "-INF" = -Inf, NAN = NaN)
+      value[nonfinite] <- unname(lookup[toupper(text[nonfinite])])
+      metadata[[column]] <- value
+    }
+  }
+}
 sizes <- if (length(args) >= 6L) as.numeric(strsplit(args[6], ",", fixed = TRUE)[[1]]) else NULL
 groups <- if (length(args) == 7L) strsplit(args[7], ",", fixed = TRUE)[[1]] else character()
 batch_args <- list(
@@ -62,6 +81,8 @@ saveRDS(result, file.path(output_dir, "analysis.rds"))
 writeLines(capture.output(sessionInfo()), file.path(output_dir, "session_info.txt"))
 writeLines(c(
   paste("Input:", normalizePath(args[1])),
+  "Chemistry import: text fields; blank/literal NA missing; malformed CSV rejected.",
+  if (!is.null(metadata)) "Metadata import: text fields; only explicitly supplied projected coordinates parsed numeric.",
   paste("Elements:", length(unique(result$estimates$element))),
   paste("Analysis groups:", if (length(groups)) paste(groups, collapse = ", ") else "pooled"),
   paste("Declustering:", if (is.null(sizes)) "not requested" else paste(sizes, collapse = ", ")),
