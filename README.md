@@ -2,7 +2,7 @@
 
 **Censoring-aware analysis of USGS National Geochemical Database (NGDB) data.**
 
-Development source version **1.2.0.9006**. Published versions and downloadable assets are listed
+Development source version **1.2.0.9007**. Published versions and downloadable assets are listed
 on the [releases page](https://github.com/diskoisland/geoCensor/releases). See
 [NEWS.md](NEWS.md) for changes and compatibility notes.
 
@@ -115,7 +115,7 @@ chemistry or best-value CSV:
 Rscript inst/examples/analyze_element_dataset.R data/ngdbsoil/bestvalue.csv Ag output/Ag
 ```
 
-This requires installed geoCensor 1.2.0.9006 or newer. Replace `Ag` with another element
+This requires installed geoCensor 1.2.0.9007 or newer. Replace `Ag` with another element
 symbol. The workflow converts supported units (`ppm`, `mg/kg`, `ppb`, `ug/kg`, micro-symbol equivalents, and percent units) to ug/kg and
 exports normalized observations, the pooled estimate, censored distribution
 comparisons, a fitted CDF plot when estimation succeeds, serialized results,
@@ -136,6 +136,30 @@ acquire an upper-censoring suffix through numeric type guessing.
 ```r
 chemistry <- read_usgs_chemistry("ngdbsoil/bestvalue.csv")
 ```
+
+For an explicit subset of species from a large file, use the optional batch reader
+(version 1.2.0.9007 or newer):
+
+```r
+selected <- read_usgs_chemistry_select("ngdbsed/chemistry.csv", c("Ag", "Pb"),
+                                       chunk_size = 10000)
+chemistry <- selected$data
+source_records <- selected$source_rows
+```
+
+Selection matches species exactly and preserves original text columns and order.
+The separate index contains one-based parsed data-record ordinals, excluding the
+header and empty lines; quoted multiline fields still belong to one record.
+These ordinals do not establish sample identity or independent sites. Every
+batch is parsed, including unselected records; late malformed records abort the
+read without returning a partial result. Absent species yield no observations.
+Only parser batches are bounded: retained output and final binding still grow
+with selected-record count. Keep the source file unchanged while reading.
+
+The single-element command accepts `--chunk-size=10000` to select its requested
+element during import and save a separate `input_record_index.csv` aligned with
+`observations.csv`. Without this option it keeps the whole-file reader. The
+all-element command also keeps its existing default.
 
 The all-element command reads metadata as text and parses only explicitly
 supplied projected-coordinate columns as numeric. Blank/NA and explicit nonfinite
@@ -219,8 +243,8 @@ reviewed_run <- analyze_elements(chemistry, audit_source_precision = TRUE)
 reviewed_run$source_precision_summary
 ```
 
-Batch auditing requires geoCensor **1.2.0.9002** or newer; the current installed
-commands require **1.2.0.9006** so they use guarded recovery and chemistry imports.
+Batch auditing requires geoCensor **1.2.0.9002** or newer. The all-element command
+requires **1.2.0.9006**; the single-element command requires **1.2.0.9007**.
 The opt-in adds `source_precision` and `source_precision_summary`; existing
 estimates, validation, method tables and spatial weights stay unchanged. The
 row table retains requested input order, raw IDs/values/units and all original

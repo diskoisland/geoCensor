@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-# Usage: Rscript analyze_element_dataset.R bestvalue.csv Ag output/Ag [--stratify-methods] [--audit-source-precision]
+# Usage: Rscript analyze_element_dataset.R bestvalue.csv Ag output/Ag [--stratify-methods] [--audit-source-precision] [--chunk-size=10000]
 # Uses the installed geoCensor package. All concentrations are in ug/kg.
 args <- commandArgs(trailingOnly = TRUE)
 stratify_methods <- any(args == "--stratify-methods")
@@ -9,12 +9,24 @@ args <- args[args != "--stratify-methods"]
 audit_source_precision <- any(args == "--audit-source-precision")
 if (sum(args == "--audit-source-precision") > 1L) stop("Supply --audit-source-precision only once", call. = FALSE)
 args <- args[args != "--audit-source-precision"]
+chunk_option <- grepl("^--chunk-size=", args)
+if (sum(chunk_option) > 1L) stop("Supply --chunk-size only once", call. = FALSE)
+chunk_size <- NULL
+if (any(chunk_option)) {
+  value <- sub("^--chunk-size=", "", args[chunk_option])
+  if (!grepl("^[0-9]+$", value)) stop("--chunk-size requires a positive integer", call. = FALSE)
+  chunk_size <- as.numeric(value)
+  if (!is.finite(chunk_size) || chunk_size < 1 || chunk_size > .Machine$integer.max) {
+    stop("--chunk-size requires a positive integer no larger than .Machine$integer.max", call. = FALSE)
+  }
+  args <- args[!chunk_option]
+}
 if (length(args) != 3L) {
-  stop("Usage: Rscript analyze_element_dataset.R chemistry.csv element output_dir [--stratify-methods] [--audit-source-precision]",
+  stop("Usage: Rscript analyze_element_dataset.R chemistry.csv element output_dir [--stratify-methods] [--audit-source-precision] [--chunk-size=10000]",
        call. = FALSE)
 }
 suppressPackageStartupMessages(library(geoCensor))
-required_version <- "1.2.0.9006"
+required_version <- "1.2.0.9007"
 if (utils::packageVersion("geoCensor") < required_version) {
   stop("Install geoCensor ", required_version, " or newer to use the requested workflow.", call. = FALSE)
 }
@@ -27,7 +39,13 @@ check_output_directory <- function() {
 }
 check_output_directory()
 
-chemistry <- read_usgs_chemistry(args[1])
+selection <- NULL
+if (is.null(chunk_size)) {
+  chemistry <- read_usgs_chemistry(args[1])
+} else {
+  selection <- read_usgs_chemistry_select(args[1], elements = args[2], chunk_size = chunk_size)
+  chemistry <- selection$data
+}
 required <- c("lab_id", "species", "qvalue", "unit")
 if (!all(required %in% names(chemistry))) {
   stop("Missing chemistry columns: ",
@@ -58,6 +76,11 @@ plot <- if (is.finite(estimate$geomean)) {
 check_output_directory()
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 if (!dir.exists(output_dir)) stop("Could not create output directory", call. = FALSE)
+if (!is.null(selection)) {
+  # Index rows align with observations.csv; original chemistry columns stay intact.
+  readr::write_csv(tibble::tibble(source_data_record = selection$source_rows),
+    file.path(output_dir, "input_record_index.csv"))
+}
 readr::write_csv(observations, file.path(output_dir, "observations.csv"))
 readr::write_csv(audit, file.path(output_dir, "validation_summary.csv"))
 readr::write_csv(methods, file.path(output_dir, "methods.csv"))
@@ -83,6 +106,9 @@ saveRDS(analysis, file.path(output_dir, "analysis.rds"))
 writeLines(c(
   paste("Input:", normalizePath(args[1])),
   "Chemistry import: text fields; blank/literal NA missing; malformed CSV rejected.",
+  if (!is.null(selection)) paste("Selective import: scanned", selection$n_input,
+    "data records in", selection$n_chunks, "batches; requested chunk size", chunk_size),
+  if (!is.null(selection)) "input_record_index.csv contains parsed data-record ordinals, not physical lines or independent sites.",
   paste("Element:", args[2]),
   "Concentration unit: ug/kg",
   paste("Input rows for element:", nrow(observations)),
