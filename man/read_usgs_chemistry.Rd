@@ -31,5 +31,5 @@ Leading-zero and large identifiers are text, not numbers. The reader does not
 select results, reconcile methods, infer dates or certify analytical quality.
 }
 \seealso{
-\code{\link[=read_usgs_chemistry_select]{read_usgs_chemistry_select()}}, \code{\link[=build_ag_from_csv]{build_ag_from_csv()}}, \code{\link[=analyze_elements]{analyze_elements()}}
+\code{\link[=read_usgs_chemistry_select]{read_usgs_chemistry_select()}}, \code{\link[=export_usgs_chemistry]{export_usgs_chemistry()}}, \code{\link[=build_ag_from_csv]{build_ag_from_csv()}}, \code{\link[=analyze_elements]{analyze_elements()}}
 }

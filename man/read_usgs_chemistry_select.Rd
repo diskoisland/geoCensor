@@ -63,5 +63,5 @@ build_element(selected$data, element = "Ag")
 unlink(path)
 }
 \seealso{
-\code{\link[=read_usgs_chemistry]{read_usgs_chemistry()}}, \code{\link[=analyze_elements]{analyze_elements()}}
+\code{\link[=read_usgs_chemistry]{read_usgs_chemistry()}}, \code{\link[=export_usgs_chemistry]{export_usgs_chemistry()}}, \code{\link[=analyze_elements]{analyze_elements()}}
 }
