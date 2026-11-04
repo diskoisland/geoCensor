@@ -64,6 +64,42 @@ precision or concentrations in unsampled terrain. The remaining sections show
 how to review inputs, methods and spatial support before using this workflow
 with actual NGDB records.
 
+## Export, read and analyze the same text records
+
+Version 1.2.0.9008 adds an optional disk-export workflow. Here the input is the
+same small synthetic example above. Real exports can include all species or an
+explicit selection; neither export mode chooses analytical results or certifies
+their quality. The output path must be new and its parent must already exist.
+
+```{r disk-roundtrip}
+example_root <- tempfile("geocensor_workflow_")
+dir.create(example_root)
+example_input <- file.path(example_root, "chemistry.csv")
+disk_input <- quick_chemistry[c("lab_id", "species", "unit", "qvalue", "domain", "amethod")]
+readr::write_csv(disk_input, example_input)
+exported <- export_usgs_chemistry(example_input,
+  file.path(example_root, "exported"), chunk_size = 10)
+imported <- read_usgs_chemistry(exported$data_file)
+stopifnot(identical(imported, tibble::as_tibble(disk_input)))
+import_info <- readRDS(exported$info_file)
+c(input_records = import_info$n_input, exported_records = import_info$n_selected)
+
+roundtrip <- analyze_elements(imported, group_cols = "domain")
+reference <- analyze_elements(disk_input, group_cols = "domain")
+stopifnot(identical(roundtrip$estimates, reference$estimates))
+knitr::kable(roundtrip$estimates[c("domain", "n_total", "n_exact", "method", "geomean")],
+  digits = 3)
+unlink(example_root, recursive = TRUE)
+```
+
+Leading-zero identifiers, numeric text, missing method information and every
+input record survive this round trip. The all-left and constant-code outcomes
+remain unavailable. This is a software example, not validation of population
+confidence limits. The separate source-record index describes file positions,
+not independent sites. Source and output fingerprints document content; they
+do not establish analytical reliability. See `?export_usgs_chemistry` for output
+ownership, late-error protection and resource limitations.
+
 ## Start with one sampling medium
 
 Real input tables contain one selected chemistry result per sample and species,

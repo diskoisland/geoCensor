@@ -40,18 +40,46 @@ open it with `vignette("usgs-workflow", package = "geoCensor")`.
 ## Installation
 
 Release changes and compatibility notes are recorded in [NEWS.md](NEWS.md).
-The command below installs the current public main branch. Check the installed
-version before using the versioned example commands. A release candidate can
-also be installed directly from its checked source archive.
+The latest published release verified on November 3, 2026 is **v1.1.0**.
+The **1.2.0.9008 development candidate** is under review in the stacked PRs;
+installing `main` does not install that candidate. Choose the version explicitly:
 
 ```r
 # install.packages("remotes")
-remotes::install_github("diskoisland/geoCensor")
-packageVersion("geoCensor")
+remotes::install_github("diskoisland/geoCensor@v1.1.0")
 
-# Alternatively, after obtaining the checked 1.2.0 source archive:
-# install.packages("geoCensor_1.2.0.tar.gz", repos = NULL, type = "source")
+# Or install the exact checked development feature revision from PR #9:
+remotes::install_github("diskoisland/geoCensor@df40fcc283ef2554d2609f28c9c6afdff5087a2c")
+
+# Alternatively, use an obtained and checksum-verified candidate source archive:
+# install.packages("/path/to/geoCensor_1.2.0.9008.tar.gz", repos = NULL, type = "source")
 ```
+
+Run the selected installation command. After upgrading a package already loaded
+in R, restart R before using the new functions. Then check the installed and
+loaded versions:
+
+```r
+library(geoCensor)
+packageVersion("geoCensor")
+getNamespaceVersion("geoCensor")
+```
+
+The `.tar.gz` is the source installer on macOS, Linux and Windows (build tools
+may be needed). A review-bundle ZIP contains evidence and is not an R package
+installer. Use `packageDescription("geoCensor")` for package metadata; the archive
+filename is not a package name.
+
+| Installed workflow | Minimum package version |
+| --- | --- |
+| `audit_sampling_support.R` | 1.2.0.9005 |
+| `analyze_all_elements.R` | 1.2.0.9006 |
+| `analyze_element_dataset.R` | 1.2.0.9007 |
+| `export_chemistry.R` | 1.2.0.9008 |
+
+These development commands are not supplied by v1.1.0. The pinned feature
+revision is distinct from a published release; see the
+[release checklist](RELEASE_CHECKLIST.md) for the review/publication sequence.
 
 ## Quick start
 
@@ -707,7 +735,7 @@ The geoCensor package **does not include geochemical data**. Instead, it is desi
 If you use geoCensor, please cite it. The repository includes citation metadata in `CITATION.cff`:
 
 > Edwards, R. (2026). *geoCensor: Censoring-Aware Analysis of USGS National
-> Geochemical Database Data* (version 1.2.0). https://github.com/diskoisland/geoCensor
+> Geochemical Database Data* (development version 1.2.0.9008). https://github.com/diskoisland/geoCensor
 
 ## License
 
