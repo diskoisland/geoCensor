@@ -1,4 +1,20 @@
-# geoCensor 1.2.0.9008 (development)
+# geoCensor 1.2.0
+
+## Installed workflows and worked examples
+
+* Add an Upper Illinois River Basin vignette and installed case-study script.
+  Select all reported species by the project metadata, retain original source
+  fields and record ordinals, audit support, compare 5/10/20 km declustering,
+  and save results, figures, provenance and unavailable fits. The actual source
+  data are downloaded separately; no private research bundle is included.
+* Accept the final 1.2.0 version in installed commands, while checking the
+  required exported functions and arguments to reject incomplete earlier local
+  candidates with the same version label. Restart R after upgrading.
+* Spatial intervals remain experimental, and routine declustering-weighted
+  confidence limits remain absent. The case study does not validate geological
+  background, ore probabilities or contamination attribution.
+
+## Disk exports
 
 * Add optional `export_usgs_chemistry()` and an installed `export_chemistry.R`
   command for batch exports without retaining selected data frames. All original
@@ -8,7 +24,7 @@
   only after complete parsing and matching before/after source fingerprints.
   Existing readers and analysis defaults are unchanged.
 
-# geoCensor 1.2.0.9007 (development)
+## Species-selective imports
 
 * Add optional `read_usgs_chemistry_select()` to scan all input batches while
   retaining requested species, original text fields and separate source-record
@@ -17,7 +33,7 @@
 * Add explicit `--chunk-size=10000` to the single-element analysis command,
   with a separate input-record index. Its default whole-file reader is unchanged.
 
-# geoCensor 1.2.0.9006 (development)
+## Lossless CSV import
 
 * Read chemistry CSV columns as text with `read_usgs_chemistry()`, shared by
   `build_ag_from_csv()` and both installed analysis commands. Preserve rare
@@ -26,12 +42,12 @@
 * Fix a sparse-column import failure that could drop a rare positive-value G/L
   qualifier and turn a censoring limit into an apparent detection. Source-review
   exports now retain character source fields; in-memory APIs are unchanged.
-* Require installed 1.2.0.9006 for the analysis commands. Read command metadata
+* Require installed 1.2.0 for the analysis commands. Read command metadata
   as text and explicitly parse only requested projected coordinates; invalid
   coordinate text stops before saving output. Explicit nonfinite coordinates
   remain unlocated. No CRS, units or missing data inferred.
 
-# geoCensor 1.2.0.9005 (development)
+## Saved sampling-support audits
 
 * Add `audit_sampling_file()` and installed `audit_sampling_support.R` for
   reproducible metadata audits and optional position memberships. Export raw
@@ -42,7 +58,7 @@
   nonempty destinations and check input fingerprints before saving. No coordinate
   system, units, dates, physical identity, weights or dilution factors inferred.
 
-# geoCensor 1.2.0.9004 (development)
+## Recorded-position memberships
 
 * Add optional `sampling_support_audit(..., include_memberships = TRUE)` with
   original-row memberships and exact-coordinate groups across analysis domains.
@@ -52,7 +68,7 @@
   do not establish physical sites, replicates or independence; no observations
   are collapsed or weighted. Exact numeric grouping avoids text-rounding merges.
 
-# geoCensor 1.2.0.9003 (development)
+## Guarded upper-limit recovery
 
 * Require a known matching analytical method, well-formed first entry and
   compatible usable coding before recovering rounded summary upper limits.
@@ -64,10 +80,10 @@
   intentional compatibility change can alter previous unguarded recoveries;
   correctly associated recovery and source-precision auditing remain available.
   No dilution correction or analytical-QA certification is inferred.
-* Require installed1.2.0.9003 for both command workflows, including runs without
+* Require installed 1.2.0 for both command workflows, including runs without
   source auditing, so new scripts cannot silently use an older unguarded parser.
 
-# geoCensor 1.2.0.9002 (development)
+## Batch source-summary review
 
 * Integrate the source-summary precision audit into the active package. Add
   opt-in `analyze_elements(..., audit_source_precision = TRUE)` row-level review
@@ -79,11 +95,9 @@
   including when both reported and summary labels say UNKNOWN. No source-value
   candidate is exposed from unspecified method identity.
 
-# geoCensor 1.2.0.9001 (development)
+## Source-summary precision audit
 
 * Add `audit_summary_precision()` to expose first-entry source numeric differences and upper-limit evidence only when method association and censoring checks permit. Preserve every input row and value; candidates are review evidence and never replace estimator inputs.
-
-# geoCensor 1.2.0
 
 ## Analytical methods and geographic support
 

@@ -11,7 +11,7 @@ authors:
   - family-names: Edwards
     given-names: Ross
     email: pedwards5@wisc.edu
-version: 1.2.0.9008
+version: 1.2.0
 license: MIT
 url: "https://github.com/diskoisland/geoCensor"
 repository-code: "https://github.com/diskoisland/geoCensor"

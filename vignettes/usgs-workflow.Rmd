@@ -66,7 +66,7 @@ with actual NGDB records.
 
 ## Export, read and analyze the same text records
 
-Version 1.2.0.9008 adds an optional disk-export workflow. Here the input is the
+Version 1.2.0 adds an optional disk-export workflow. Here the input is the
 same small synthetic example above. Real exports can include all species or an
 explicit selection; neither export mode chooses analytical results or certifies
 their quality. The output path must be new and its parent must already exist.
@@ -111,7 +111,7 @@ chemistry <- read_usgs_chemistry("ngdbsoil/bestvalue.csv")
 metadata <- read_clean_main("ngdbsoil/main.csv")
 ```
 
-`read_usgs_chemistry()` requires 1.2.0.9006 and rejects malformed CSV records and
+`read_usgs_chemistry()` requires 1.2.0 and rejects malformed CSV records and
 duplicate/empty headers. Blank/literal NA fields are missing; other source text
 is retained, including trailing numeric zeroes and rare G/L qualifiers. Value
 validation and censoring follow the ordinary builders. Both installed analysis
@@ -394,7 +394,7 @@ head(position_support$coordinate_groups)
 stopifnot(identical(position_support$memberships[names(metadata)], tibble::as_tibble(metadata)))
 ```
 
-The two optional tables are available in1.2.0.9004. Groups span analysis-domain
+The two optional tables are available in1.2.0. Groups span analysis-domain
 labels, while the existing locations table remains domain-specific. Group IDs are
 stable under row reordering within a cohort, not durable physical-site identifiers.
 Missing/nonfinite coordinates remain unlocated with unknown group membership and
@@ -419,7 +419,7 @@ list.files(support_folder)
 stopifnot(nrow(saved_support$input_metadata) == nrow(metadata))
 ```
 
-In1.2.0.9005, `audit_sampling_file()` and the installed
+In1.2.0, `audit_sampling_file()` and the installed
 `examples/audit_sampling_support.R` command export the same raw metadata, audit,
 conversion and run/session records. Trimmed blank and literal NA values are
 missing in the analysis copy; source text remains in the raw table and membership
@@ -461,10 +461,10 @@ measurement error, while agreement does not certify measurement reliability.
 Small examples here have insufficient information for fitting; the audit remains
 available independently. Both installed commands expose the same opt-in as
 `--audit-source-precision` and export the two extra CSV/RDS components. Their
-batch audit requires installed version1.2.0.9002 or newer; current command scripts
-require1.2.0.9006 so they use guarded recovery and chemistry imports.
+batch audit requires installed version1.2.0 or newer; current command scripts
+require1.2.0 so they use guarded recovery and chemistry imports.
 
-The recovery safeguard itself requires1.2.0.9003. Here the reported value and
+The recovery safeguard itself requires1.2.0. Here the reported value and
 summary are identical across rows, but method association differs:
 
 ```{r upper-recovery-guard}

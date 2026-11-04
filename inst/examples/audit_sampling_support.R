@@ -33,7 +33,10 @@ coords <- if (is.null(options$coords)) NULL else parse_names(options$coords)
 if (!is.null(coords) && length(coords) != 2L) stop("--coords requires exactly two columns", call. = FALSE)
 if (memberships && is.null(coords)) stop("--memberships requires --coords", call. = FALSE)
 suppressPackageStartupMessages(library(geoCensor))
-if (utils::packageVersion("geoCensor") < "1.2.0.9005") stop("Install geoCensor 1.2.0.9005 or newer for this workflow", call. = FALSE)
+helper <- system.file("examples", "workflow_requirements.R", package = "geoCensor")
+if (!nzchar(helper)) stop("Install the final geoCensor 1.2.0 release and restart R; this installation lacks workflow support.", call. = FALSE)
+sys.source(helper, envir = environment())
+geocensor_require_workflow("audit")
 audit_sampling_file(positional[1L], positional[2L], group_cols = groups, support_cols = support,
   id_col = if (is.null(options[["id-col"]])) "lab_id" else options[["id-col"]],
   x_col = if (is.null(coords)) NULL else coords[1L],

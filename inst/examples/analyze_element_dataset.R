@@ -26,10 +26,10 @@ if (length(args) != 3L) {
        call. = FALSE)
 }
 suppressPackageStartupMessages(library(geoCensor))
-required_version <- "1.2.0.9007"
-if (utils::packageVersion("geoCensor") < required_version) {
-  stop("Install geoCensor ", required_version, " or newer to use the requested workflow.", call. = FALSE)
-}
+helper <- system.file("examples", "workflow_requirements.R", package = "geoCensor")
+if (!nzchar(helper)) stop("Install the final geoCensor 1.2.0 release and restart R; this installation lacks workflow support.", call. = FALSE)
+sys.source(helper, envir = environment())
+geocensor_require_workflow("single")
 output_dir <- args[3]
 check_output_directory <- function() {
   if (file.exists(output_dir) && !dir.exists(output_dir)) stop("Output path is not a directory", call. = FALSE)
