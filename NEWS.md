@@ -1,3 +1,17 @@
+# geoCensor 1.2.0.9006 (development)
+
+* Read chemistry CSV columns as text with `read_usgs_chemistry()`, shared by
+  `build_ag_from_csv()` and both installed analysis commands. Preserve rare
+  qualifiers, upper-limit suffixes, lexical numeric precision and identifier
+  formatting. Reject malformed CSV structure and duplicate/empty headers.
+* Fix a sparse-column import failure that could drop a rare positive-value G/L
+  qualifier and turn a censoring limit into an apparent detection. Source-review
+  exports now retain character source fields; in-memory APIs are unchanged.
+* Require installed 1.2.0.9006 for the analysis commands. Read command metadata
+  as text and explicitly parse only requested projected coordinates; invalid
+  coordinate text stops before saving output. Explicit nonfinite coordinates
+  remain unlocated. No CRS, units or missing data inferred.
+
 # geoCensor 1.2.0.9005 (development)
 
 * Add `audit_sampling_file()` and installed `audit_sampling_support.R` for

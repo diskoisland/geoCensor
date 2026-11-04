@@ -67,15 +67,20 @@ with actual NGDB records.
 ## Start with one sampling medium
 
 Real input tables contain one selected chemistry result per sample and species,
-plus sample metadata. Read sample IDs as text to preserve leading zeroes:
+plus sample metadata. Read chemistry fields as text to preserve identifiers,
+numeric encodings and sparse qualifiers:
 
 ```{r real-input, eval=FALSE}
-chemistry <- readr::read_csv(
-  "ngdbsoil/bestvalue.csv",
-  col_types = readr::cols(lab_id = readr::col_character())
-)
+chemistry <- read_usgs_chemistry("ngdbsoil/bestvalue.csv")
 metadata <- read_clean_main("ngdbsoil/main.csv")
 ```
+
+`read_usgs_chemistry()` requires 1.2.0.9006 and rejects malformed CSV records and
+duplicate/empty headers. Blank/literal NA fields are missing; other source text
+is retained, including trailing numeric zeroes and rare G/L qualifiers. Value
+validation and censoring follow the ordinary builders. Both installed analysis
+commands use this reader. The all-species command explicitly parses only the
+requested projected metadata coordinates and stops on invalid coordinate text.
 
 Run soil and sediment separately. Before pooling, decide which depths, horizons,
 size fractions, sample media, and analytical methods describe your intended
@@ -421,7 +426,7 @@ Small examples here have insufficient information for fitting; the audit remains
 available independently. Both installed commands expose the same opt-in as
 `--audit-source-precision` and export the two extra CSV/RDS components. Their
 batch audit requires installed version1.2.0.9002 or newer; current command scripts
-require1.2.0.9003 so they use the recovery safeguard.
+require1.2.0.9006 so they use guarded recovery and chemistry imports.
 
 The recovery safeguard itself requires1.2.0.9003. Here the reported value and
 summary are identical across rows, but method association differs:

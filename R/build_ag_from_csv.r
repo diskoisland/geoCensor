@@ -4,10 +4,13 @@
 #' @param element Element symbol to filter (default "Ag").
 #' @param to_ugkg Logical; if TRUE, convert supported units to ug/kg.
 #'
-#' @return A data frame with one row per lab_id for the requested element.
+#' @return A data frame retaining rows for the requested element, including
+#'   invalid rows with validation_status. Duplicate results are not collapsed.
+#' @details All chemistry columns are read as text by [read_usgs_chemistry()],
+#'   preserving sparse qualifiers, encoded limits and identifier formatting.
+#'   Malformed CSV structure stops before chemistry parsing.
 #' @export
 build_ag_from_csv <- function(chem_csv, element = "Ag", to_ugkg = TRUE) {
-  chem_df <- readr::read_csv(chem_csv, col_types = readr::cols(lab_id = readr::col_character()),
-                             show_col_types = FALSE)
+  chem_df <- read_usgs_chemistry(chem_csv)
   build_ag_from_chem(chem_df, element = element, to_ugkg = to_ugkg)
 }

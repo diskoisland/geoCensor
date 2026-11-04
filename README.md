@@ -2,7 +2,7 @@
 
 **Censoring-aware analysis of USGS National Geochemical Database (NGDB) data.**
 
-Development source version **1.2.0.9005**. Published versions and downloadable assets are listed
+Development source version **1.2.0.9006**. Published versions and downloadable assets are listed
 on the [releases page](https://github.com/diskoisland/geoCensor/releases). See
 [NEWS.md](NEWS.md) for changes and compatibility notes.
 
@@ -115,7 +115,7 @@ chemistry or best-value CSV:
 Rscript inst/examples/analyze_element_dataset.R data/ngdbsoil/bestvalue.csv Ag output/Ag
 ```
 
-This requires installed geoCensor 1.2.0.9003 or newer. Replace `Ag` with another element
+This requires installed geoCensor 1.2.0.9006 or newer. Replace `Ag` with another element
 symbol. The workflow converts supported units (`ppm`, `mg/kg`, `ppb`, `ug/kg`, micro-symbol equivalents, and percent units) to ug/kg and
 exports normalized observations, the pooled estimate, censored distribution
 comparisons, a fitted CDF plot when estimation succeeds, serialized results,
@@ -125,8 +125,25 @@ Input validation retains invalid chemistry rows with missing concentration field
 and an explicit `validation_status`: missing or invalid values, nonpositive
 detections, invalid limits, conflicting encodings, unknown qualifiers, or
 unsupported units. Blank/missing, `L`, `N`, `<`, `G`, and `>` qualifiers are accepted;
-other codes need review before use. CSV imports preserve leading zeroes in
-sample identifiers.
+other codes need review before use. Read chemistry with `read_usgs_chemistry()`
+or `build_ag_from_csv()`. Both installed analysis commands use the same reader.
+All chemistry columns remain character, preserving leading-zero/large identifiers,
+numeric text and sparse qualifiers. Blank fields and literal NA are missing;
+other text is retained. Malformed CSV records and duplicate/empty headers stop
+before analysis. A value such as `4.11110` retains its trailing zero and cannot
+acquire an upper-censoring suffix through numeric type guessing.
+
+```r
+chemistry <- read_usgs_chemistry("ngdbsoil/bestvalue.csv")
+```
+
+The all-element command reads metadata as text and parses only explicitly
+supplied projected-coordinate columns as numeric. Blank/NA and explicit nonfinite
+coordinates remain unlocated. Invalid coordinate text stops
+before outputs are saved. Supply an appropriate CRS and coordinate units; neither
+is inferred. Source-precision exports retain character source values/IDs rather
+than guessed numeric columns. In-memory builder/analysis APIs retain their
+existing input-type behavior.
 
 Metadata joins reject duplicate or blank metadata IDs, warn about unmatched
 or repeated chemistry IDs, and retain chemistry rows without multiplying them.
@@ -203,7 +220,7 @@ reviewed_run$source_precision_summary
 ```
 
 Batch auditing requires geoCensor **1.2.0.9002** or newer; the current installed
-commands require **1.2.0.9003** so they use guarded upper-limit recovery.
+commands require **1.2.0.9006** so they use guarded recovery and chemistry imports.
 The opt-in adds `source_precision` and `source_precision_summary`; existing
 estimates, validation, method tables and spatial weights stay unchanged. The
 row table retains requested input order, raw IDs/values/units and all original
@@ -288,7 +305,7 @@ still assume independent observations and a suitable lognormal model.
 
 Both installed commands accept `--stratify-methods` and then export
 `method_estimates.csv` as well as the usual outputs. This feature requires
-version 1.2.0.9003 or newer.
+version 1.2.0.9006 or newer.
 Choose a new or empty output directory for each command run; existing results
 are preserved so optional tables and plots cannot be confused with a later run.
 
@@ -341,7 +358,7 @@ for the intended spatial domain. The batch audit uses sorted unique cell sizes.
 The all-element command accepts `--method-overlap` when metadata, projected
 coordinate columns and cell sizes are supplied. It exports
 `method_overlap_support.csv`, `method_coverage.csv` and `method_overlap.csv`, plus
-the corresponding RDS components. This command now requires version 1.2.0.9003
+the corresponding RDS components. This command now requires version 1.2.0.9006
 or newer. Missing method/coordinate information stays explicit in those tables.
 
 ## Audit sampling support before pooling
