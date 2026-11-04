@@ -4,7 +4,8 @@
 #'   (detected_val, left_cen, left_limit, right_cen, right_limit).
 #' @param country_codes Acceptable country values (upper-case).
 #'
-#' @return Tibble with one row per state: geomean, CI, counts.
+#' @return Tibble with one row per state: geomean, CI, counts and state-specific
+#'   analytical-method review counts/status from [fit_cen_lognorm()].
 #' @export
 mle_by_state <- function(ag_main,
                          country_codes = c("US", "USA", "UNITED STATES", "U.S.")) {

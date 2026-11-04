@@ -8,6 +8,9 @@
 #' Concentrations are converted to mg/kg from the native reporting unit
 #' (ppm, mg/kg, ppb, ug/kg, micro-symbol equivalents, pct, percent, or %).
 #' Other units are set to `NA`. Duplicate sample/element pairs raise an error.
+#' Rounded summary upper-limit recovery uses the same known-method and coding
+#' guard as [build_element()]. Inspect its long observations for row-level
+#' `summary_recovery_status` before widening.
 #'
 #' @param chem_df Chemistry long table (lab_id, species, unit, qvalue, and
 #'   optional qualifier).

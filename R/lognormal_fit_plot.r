@@ -37,7 +37,15 @@ plot_censored_intervals <- function(df,
 #' @param show_censored If `TRUE`, plot rugs for left- and right-censoring
 #'   limits.
 #'
-#' @return A ggplot object.
+#' @details Uses the same numerical fit checks as [fit_cen_lognorm()]. A warning,
+#'   error or invalid parameter estimate stops plotting with a failed-fit error.
+#'   Captions retain analytical-method review counts for the usable observations,
+#'   using `amethod` when supplied. Zero recognized semiquantitative codes does
+#'   not establish quantitative precision. Exact detections describe censoring
+#'   codes, not verified measurement precision. Model confidence limits assume
+#'   independent observations and an appropriate lognormal model; spatial
+#'   confidence limits remain experimental.
+#' @return A ggplot object with method-review counts in its caption.
 #' @export
 plot_lognormal_fit <- function(
     df,
@@ -73,18 +81,16 @@ plot_lognormal_fit <- function(
     )
   }
 
-  fit <- survival::survreg(
-    survival::Surv(
-      intervals$lower[intervals$ok],
-      intervals$upper[intervals$ok],
-      type = "interval2"
-    ) ~ 1,
-    dist = "lognormal"
+  fit <- .fit_validated_censored_lognormal(
+    intervals$lower[intervals$ok], intervals$upper[intervals$ok],
+    rep(1, intervals$n_total)
   )
+  if (is.null(fit)) stop("plot_lognormal_fit: failed fit; no fitted curve available", call. = FALSE)
+  method_summary <- .summarize_analytical_methods(df, intervals = intervals, include_methods = FALSE)$summary
 
   meanlog <- unname(stats::coef(fit)[1])
   sdlog <- fit$scale
-  se_meanlog <- summary(fit)$table[1, "Std. Error"]
+  se_meanlog <- sqrt(stats::vcov(fit)[1, 1])
   z <- stats::qnorm(0.975)
 
   gm <- exp(meanlog)
@@ -355,5 +361,10 @@ plot_lognormal_fit <- function(
     }
   }
 
-  p
+  p + ggplot2::labs(caption = paste(
+    p$labels$caption,
+    .method_review_caption(method_summary, intervals$n_total),
+    "Model CI assumes independent observations; spatial confidence limits remain experimental.",
+    sep = "\n"
+  ))
 }

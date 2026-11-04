@@ -1,16 +1,51 @@
 #!/usr/bin/env Rscript
 
-# Usage: Rscript analyze_element_dataset.R bestvalue.csv Ag output/Ag
+# Usage: Rscript analyze_element_dataset.R bestvalue.csv Ag output/Ag [--stratify-methods] [--audit-source-precision] [--chunk-size=10000]
 # Uses the installed geoCensor package. All concentrations are in ug/kg.
 args <- commandArgs(trailingOnly = TRUE)
+stratify_methods <- any(args == "--stratify-methods")
+if (sum(args == "--stratify-methods") > 1L) stop("Supply --stratify-methods only once", call. = FALSE)
+args <- args[args != "--stratify-methods"]
+audit_source_precision <- any(args == "--audit-source-precision")
+if (sum(args == "--audit-source-precision") > 1L) stop("Supply --audit-source-precision only once", call. = FALSE)
+args <- args[args != "--audit-source-precision"]
+chunk_option <- grepl("^--chunk-size=", args)
+if (sum(chunk_option) > 1L) stop("Supply --chunk-size only once", call. = FALSE)
+chunk_size <- NULL
+if (any(chunk_option)) {
+  value <- sub("^--chunk-size=", "", args[chunk_option])
+  if (!grepl("^[0-9]+$", value)) stop("--chunk-size requires a positive integer", call. = FALSE)
+  chunk_size <- as.numeric(value)
+  if (!is.finite(chunk_size) || chunk_size < 1 || chunk_size > .Machine$integer.max) {
+    stop("--chunk-size requires a positive integer no larger than .Machine$integer.max", call. = FALSE)
+  }
+  args <- args[!chunk_option]
+}
 if (length(args) != 3L) {
-  stop("Usage: Rscript analyze_element_dataset.R chemistry.csv element output_dir",
+  stop("Usage: Rscript analyze_element_dataset.R chemistry.csv element output_dir [--stratify-methods] [--audit-source-precision] [--chunk-size=10000]",
        call. = FALSE)
 }
 suppressPackageStartupMessages(library(geoCensor))
+helper <- system.file("examples", "workflow_requirements.R", package = "geoCensor")
+if (!nzchar(helper)) stop("Install the final geoCensor 1.2.0 release and restart R; this installation lacks workflow support.", call. = FALSE)
+sys.source(helper, envir = environment())
+geocensor_require_workflow("single")
+output_dir <- args[3]
+check_output_directory <- function() {
+  if (file.exists(output_dir) && !dir.exists(output_dir)) stop("Output path is not a directory", call. = FALSE)
+  if (dir.exists(output_dir) && length(list.files(output_dir, all.files = TRUE, no.. = TRUE))) {
+    stop("Output directory is not empty; choose a new directory to preserve previous results", call. = FALSE)
+  }
+}
+check_output_directory()
 
-chemistry <- readr::read_csv(args[1], col_types = readr::cols(lab_id = readr::col_character()),
-                             show_col_types = FALSE)
+selection <- NULL
+if (is.null(chunk_size)) {
+  chemistry <- read_usgs_chemistry(args[1])
+} else {
+  selection <- read_usgs_chemistry_select(args[1], elements = args[2], chunk_size = chunk_size)
+  chemistry <- selection$data
+}
 required <- c("lab_id", "species", "qvalue", "unit")
 if (!all(required %in% names(chemistry))) {
   stop("Missing chemistry columns: ",
@@ -25,8 +60,12 @@ ids <- trimws(as.character(observations$lab_id))
 if (anyNA(ids) || any(ids == "")) stop("Missing or blank lab_id values")
 if (anyDuplicated(ids)) stop("Duplicate lab_id values; select one result per sample first")
 audit <- dplyr::count(observations, .data$validation_status, name = "n_observations")
-estimate <- fit_cen_lognorm(observations)
-comparison <- compare_censored_distributions(observations)
+batch_args <- list(chem_df = chemistry, elements = args[2], stratify_methods = stratify_methods)
+if (audit_source_precision) batch_args$audit_source_precision <- TRUE
+batch <- do.call(analyze_elements, batch_args)
+estimate <- batch$estimates
+comparison <- batch$distributions
+methods <- batch$methods
 plot <- if (is.finite(estimate$geomean)) {
   plot_lognormal_fit(
     observations, title = paste(args[2], "censored lognormal fit"),
@@ -34,26 +73,53 @@ plot <- if (is.finite(estimate$geomean)) {
   )
 } else NULL
 
-output_dir <- args[3]
+check_output_directory()
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+if (!dir.exists(output_dir)) stop("Could not create output directory", call. = FALSE)
+if (!is.null(selection)) {
+  # Index rows align with observations.csv; original chemistry columns stay intact.
+  readr::write_csv(tibble::tibble(source_data_record = selection$source_rows),
+    file.path(output_dir, "input_record_index.csv"))
+}
 readr::write_csv(observations, file.path(output_dir, "observations.csv"))
 readr::write_csv(audit, file.path(output_dir, "validation_summary.csv"))
+readr::write_csv(methods, file.path(output_dir, "methods.csv"))
 readr::write_csv(estimate, file.path(output_dir, "pooled_estimate.csv"))
 readr::write_csv(comparison, file.path(output_dir, "distribution_comparison.csv"))
+if (stratify_methods) readr::write_csv(batch$method_estimates, file.path(output_dir, "method_estimates.csv"))
+if (audit_source_precision) {
+  readr::write_csv(batch$source_precision, file.path(output_dir, "source_precision.csv"))
+  readr::write_csv(batch$source_precision_summary, file.path(output_dir, "source_precision_summary.csv"))
+}
 if (!is.null(plot)) {
   ggplot2::ggsave(file.path(output_dir, "lognormal_fit.png"), plot,
                  width = 8, height = 5, dpi = 180)
 }
-saveRDS(list(observations = observations, validation = audit, estimate = estimate,
-             comparison = comparison), file.path(output_dir, "analysis.rds"))
+analysis <- list(observations = observations, validation = audit, estimate = estimate,
+                 comparison = comparison, methods = methods)
+if (stratify_methods) analysis$method_estimates <- batch$method_estimates
+if (audit_source_precision) {
+  analysis$source_precision <- batch$source_precision
+  analysis$source_precision_summary <- batch$source_precision_summary
+}
+saveRDS(analysis, file.path(output_dir, "analysis.rds"))
 writeLines(c(
   paste("Input:", normalizePath(args[1])),
+  "Chemistry import: text fields; blank/literal NA missing; malformed CSV rejected.",
+  if (!is.null(selection)) paste("Selective import: scanned", selection$n_input,
+    "data records in", selection$n_chunks, "batches; requested chunk size", chunk_size),
+  if (!is.null(selection)) "input_record_index.csv contains parsed data-record ordinals, not physical lines or independent sites.",
   paste("Element:", args[2]),
   "Concentration unit: ug/kg",
   paste("Input rows for element:", nrow(observations)),
   paste("Usable observations:", estimate$n_total),
   paste("Excluded observations:", nrow(observations) - estimate$n_total),
-  paste("Estimation method:", estimate$method)
+  paste("Estimation method:", estimate$method),
+  paste("Method review:", estimate$method_review_status),
+  paste("Unweighted method stratification:", stratify_methods),
+  paste("Source-summary precision audit:", audit_source_precision),
+  if (audit_source_precision) "Source-precision candidates/deltas retain input units and do not replace estimator inputs.",
+  "Method review does not infer reporting-class bounds or validate measurement precision."
 ), file.path(output_dir, "run_summary.txt"))
 writeLines(capture.output(sessionInfo()), file.path(output_dir, "session_info.txt"))
 message("Analysis saved to ", normalizePath(output_dir))

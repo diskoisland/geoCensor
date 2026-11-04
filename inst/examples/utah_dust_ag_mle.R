@@ -25,7 +25,9 @@ load_geocensor <- function() {
 
   source_files <- c(
     "R/parse_usgs_q.r",
+    "R/distribution_diagnostics.R",
     "R/censoring.R",
+    "R/flag_analytical_methods.R",
     "R/build_ag_from_chem.r",
     "R/build_element.r"
   )

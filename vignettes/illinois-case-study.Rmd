@@ -1,0 +1,198 @@
+---
+title: "Upper Illinois River Basin: censoring, sampling support and declustering"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Upper Illinois River Basin: censoring, sampling support and declustering}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+This example uses actual USGS National Geochemical Database (NGDB) records from
+the project **NAWQA Upper Illinois R. Basin**, selected by its metadata label and
+state `IL`, without selecting on silver or other concentrations. It demonstrates
+how to retain censored results, examine sampling support and compare descriptive
+geometric means across declustering scales.
+
+The saved November 2026 input snapshot contains **439 sample records, 20,422
+best-value chemistry records, 48 reported species and 332 numeric geographic
+coordinate pairs**. These are different counts. Coordinate matches do not certify
+physical sites, replicates, comparable specimens or spatial independence.
+Collection dates are absent in this cohort; submission dates are not substituted.
+Different versions of the source tables may produce different counts.
+
+This heterogeneous project cohort is a software example, not an established
+geological background population. The separate research experiment using 77
+Illinois-derived positions has **synthetic responses** and is not the chemistry
+analysis shown here. A narrower 142-record support stratum used in exploratory
+research is also distinct from the full cohort.
+
+## Obtain and identify the inputs
+
+Obtain the sediment `main.csv` and `bestvalue.csv` exports from the
+[USGS NGDB portal](https://mrdata.usgs.gov/ngdb/). Keep the download metadata and
+original files unchanged. This example expects the native long-format best-value
+table, with `lab_id`, `species`, `unit`, `qvalue` and the available method/summary
+columns. It does not treat raw alternative assays as selected best values.
+No data download is performed when building this vignette.
+
+The tested snapshot has these SHA256 fingerprints:
+
+| Original sediment export | SHA256 |
+| --- | --- |
+| `main.csv` | `e67d5bfbebf6ceb9502e9e421948d1711c47537b51414f98a362fa0ad7d8faa9` |
+| `bestvalue.csv` | `291591c10a664b5be7fca534bdb746d01aa9306f3280f2e48ad36641cbeff60c` |
+
+Hashes identify a particular file, not its scientific accuracy. Preserve and
+report your own source/version if yours differs; do not edit files to match counts.
+The package does not bundle the source tables or the project's private research
+folder. Start with the offline [synthetic workflow](usgs-workflow.html) if you do
+not yet have the data.
+
+## Run the installed example
+
+Install the final geoCensor 1.2.0 release and restart R. An earlier local package
+also labeled 1.2.0 can lack the new workflows; the installed commands check the
+required capabilities as well as the version. The optional **sf** package is
+needed only if this script prepares the projected coordinates itself.
+
+```{r locate-command, eval=FALSE}
+library(geoCensor)
+script <- system.file("examples", "illinois_case_study.R", package = "geoCensor")
+stopifnot(nzchar(script))
+system2(file.path(R.home("bin"), "Rscript"),
+        shQuote(c(script, "--help")))
+```
+
+From a terminal, run the installed script at the path returned above:
+
+```{r run-project, eval=FALSE}
+# Run this command from R, using your own local paths and a new output directory.
+system2(file.path(R.home("bin"), "Rscript"), shQuote(c(
+  script, "ngdbsed/main.csv", "ngdbsed/bestvalue.csv", "illinois_results"
+)))
+```
+
+The script scans both inputs in batches, reads every field as text, validates
+even unselected CSV records and retains all chemistry belonging to the selected
+metadata IDs. Input record indices are saved separately from the original
+columns. Its default batch size is 10,000; retained data grow with the selected
+cohort. It does not infer missing results or silently average repeated assays.
+
+It appends EPSG:5070 metre coordinates by transforming the published
+`long_wgs84`/`lat_wgs84` fields, retaining original coordinates, datum and precision
+labels. This is a coordinate transformation, not a correction to sample location.
+The unresolved location of D346381 remains as recorded. The projection software
+and its versions are included in provenance.
+
+Alternatively, provide previously prepared EPSG:5070 coordinates with one
+`lab_id`, `x_m`, `y_m` row per selected sample. Their CRS/units are your explicit
+assertion; numeric columns alone cannot establish a CRS:
+
+```{r supplied-projection, eval=FALSE}
+system2(file.path(R.home("bin"), "Rscript"), shQuote(c(
+  script, "ngdbsed/main.csv", "ngdbsed/bestvalue.csv", "illinois_repeat",
+  "--projected-metadata=reviewed_metadata_projected.csv"
+)))
+```
+
+The output directory must not exist and its parent must exist. Another run uses
+a new name. Partial outputs from a write failure are retained for review.
+
+## Audit before interpreting an estimate
+
+```{r review-results, eval=FALSE}
+results <- readRDS("illinois_results/analysis.rds")
+support <- readRDS("illinois_results/support.rds")
+provenance <- readRDS("illinois_results/provenance.rds")
+read.csv("illinois_results/inventory.csv")
+support$fields
+support$coordinate_groups
+results$estimates[c("element", "state", "n_total", "n_exact", "n_left",
+                    "n_right", "geomean", "review_status")]
+results$methods
+```
+
+Read the support and method tables with the chemistry results. Uncensored coding
+does not certify analytical precision, and an unreviewed method is not a cleared
+method. Missing metadata remain unknown. Reported support descriptions vary;
+pooling the project for this demonstration is not evidence of a common analyzed
+fraction or geological population.
+
+All 48 species remain visible, including four carbon-related labels. In the tested
+snapshot, **Au, Bi, Eu, Ho and Ta are all left-censored and their geometric means
+are unavailable**. They remain in the tables rather than disappearing from a
+chart. No concentration is assigned to an absent species, and no zero or fraction
+of a limit replaces a nondetect.
+
+## Examine Ag and the other reported species
+
+```{r silver-sensitivity, eval=FALSE}
+ag <- subset(results$declustering, element == "Ag")
+ag[c("cell_size", "n_total", "n_left", "unweighted_geomean", "geomean",
+     "weighted_exact_fraction", "weight_effective_n", "ci_low", "ci_high")]
+results$source_precision_summary
+```
+
+The same selected cohort can be analyzed directly through the API. Keep original
+metadata text separate from its explicit numeric-coordinate analysis copy:
+
+```{r direct-api, eval=FALSE}
+chemistry <- read_usgs_chemistry("illinois_results/selected_chemistry.csv")
+metadata <- readr::read_csv("illinois_results/metadata_projected.csv",
+  col_types = readr::cols(.default = readr::col_character()),
+  trim_ws = FALSE, show_col_types = FALSE)
+for (name in c("x_m", "y_m")) {
+  value <- readr::parse_double(metadata[[name]])
+  stopifnot(nrow(readr::problems(value)) == 0L)
+  metadata[[name]] <- value
+}
+spatial <- analyze_elements(
+  chemistry, main_df = metadata, group_cols = "state",
+  cell_sizes = c(5000, 10000, 20000), x_col = "x_m", y_col = "y_m",
+  n_offsets = 10, stratify_methods = TRUE,
+  audit_method_overlap = TRUE, audit_source_precision = TRUE
+)
+stopifnot(identical(spatial, results))
+```
+
+Cell widths of 5, 10 and 20 km are fixed sensitivity choices, not an optimized
+geological scale. Ten offsets per axis give 100 grid placements. Weighted and
+unweighted fits use the same usable chemistry/coordinate subset. Declustering
+changes descriptive influence; its weight effective sample size is not a count
+of independent observations. Estimates are in **ug/kg**, while original source
+values and source-summary precision differences retain their original units.
+
+The script creates `recorded_positions.png` and `declustering_sensitivity.png`.
+The latter compares Ag, Pb, Zn, Cu and Hg for readability; the CSV/RDS outputs
+retain every reported species and unavailable result. Source-precision candidates
+are review evidence and never replace the estimation inputs.
+
+`Ag_cdf_bounds.csv` and its plot show the range of possible empirical cumulative
+fractions given the recorded Ag values and limits, using equal record weights.
+These reporting-information bounds use all usable Ag records, including records
+without coordinates. They are not spatial confidence bands, a fitted distribution
+or a declustering adjustment. No values are imputed within the recorded ranges.
+
+## What this example establishes
+
+The example demonstrates traceable selection, preserved reporting bounds,
+sampling-support review and descriptive sensitivity to clustering. It does not
+identify concentrations on unsampled land, validate anomalies or ore probability,
+or distinguish geological enrichment from human contamination or analytical error.
+Unknown collection dates, historical exposure and dilution remain unknown.
+
+Ordinary model intervals retain their independence/lognormal assumptions.
+**Weighted routine confidence limits remain absent; spatial confidence limits
+remain experimental.** Numerical convergence and a successful software test are
+not evidence of calibrated coverage. Further covariance-refitting, censoring and
+model-misspecification experiments are needed before promoting spatial inference.
+
+The output includes original selected metadata, projected analysis metadata,
+chemistry, source-record indices, support/results tables, MD5 input/output
+fingerprints, configuration and session information. These support reproducibility;
+they do not certify source accuracy or missing QA. Keep the source exports and
+run directory with any report derived from the example.

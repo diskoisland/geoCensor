@@ -30,4 +30,7 @@ right-censored values at the upper limit, and detections kept as reported.
 Concentrations are converted to mg/kg from the native reporting unit
 (ppm, mg/kg, ppb, ug/kg, micro-symbol equivalents, pct, percent, or \%).
 Other units are set to \code{NA}. Duplicate sample/element pairs raise an error.
+Rounded summary upper-limit recovery uses the same known-method and coding
+guard as \code{\link[=build_element]{build_element()}}. Inspect its long observations for row-level
+\code{summary_recovery_status} before widening.
 }

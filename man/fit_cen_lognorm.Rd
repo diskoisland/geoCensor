@@ -32,7 +32,11 @@ Zero-weight rows are excluded. With weights, confidence limits are omitted:
 ordinary model intervals do not account for spatial sampling dependence.}
 }
 \value{
-A tibble with n_total, n_left, n_right, geomean, ci_low, ci_high, method.
+A tibble with n_total, n_left, n_right, geomean, ci_low, ci_high, method,
+followed by analytical-method review counts and status (see
+\code{\link[=flag_analytical_methods]{flag_analytical_methods()}}). These use \code{amethod} when supplied; absent method
+information remains unresolved. Used counts describe eligible fit inputs,
+including insufficient or failed fits, and exclude zero-weight rows.
 }
 \description{
 Fit a lognormal with left and right censoring
@@ -46,6 +50,9 @@ censoring directions raise an error. Missing flags are treated as false.
 Insufficient samples return \code{method = "insufficient_data"}; fitting errors,
 warnings, or invalid parameter estimates return \code{method = "failed_fit"}.
 Both cases return missing geometric means and confidence limits.
+If all usable censoring intervals share a single uncensored-coded value,
+the likelihood has no finite positive-scale maximum. Such boundary cases
+return \code{failed_fit} even if numerical rounding lets the solver report success.
 
 Unweighted confidence limits assume independent observations and an
 appropriate lognormal model. They do not account for spatial dependence

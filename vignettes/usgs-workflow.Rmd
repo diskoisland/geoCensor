@@ -21,18 +21,102 @@ This example uses synthetic data so it can run without downloading the NGDB.
 Its coordinates and concentrations are illustrative, not observations or
 estimates for the named states.
 
+## Read the outcomes before interpreting an estimate
+
+This compact example illustrates four outcomes from one synthetic sampling
+medium. The domain labels are supplied for demonstration; they do not establish
+real sampling support or geological populations. Repeated coordinates illustrate
+clustering. Identifiers remain text, and all reported results remain present.
+
+```{r four-outcomes}
+library(geoCensor)
+quick_chemistry <- data.frame(
+  lab_id = sprintf("%04d", 1:32), species = "Ag", unit = "ppm",
+  domain = rep(c("varying_codes", "all_below_limit", "constant_codes", "missing_method"), each = 8),
+  qvalue = c("-1", "1", "2", "3", "5", "8", "13", "21",
+             rep("-1", 8), rep("10", 8), as.character(1:8)),
+  amethod = rep(c("ES_SQ", "AES_HF", "ES_SQ", NA_character_), each = 8),
+  x_m = rep(c(0, 0, 0, 0, 10000, 20000, 30000, 40000), 4), y_m = 0
+)
+quick <- analyze_elements(quick_chemistry, group_cols = "domain",
+  cell_sizes = 10000, x_col = "x_m", y_col = "y_m", n_offsets = 2)
+knitr::kable(quick$estimates[c("domain", "n_total", "n_exact", "method", "geomean",
+  "method_review_status")], digits = 3)
+```
+
+The varying-code estimate remains conditional on the recorded coding and working
+model; its semiquantitative flag still requires review. All-left data retain
+their detection limits with a missing model estimate. Constant uncensored codes
+have no finite positive-scale lognormal maximum, so `failed_fit` preserves a
+missing estimate rather than numerical precision. Missing method information
+stays unresolved even when a model can be fitted. None of these statuses turns
+missing information into a zero concentration.
+
+```{r four-outcomes-declustering}
+knitr::kable(quick$declustering[c("domain", "n_total", "unweighted_geomean", "geomean",
+  "ci_low", "ci_high")], digits = 3)
+```
+
+Weighted and unweighted estimates here use the same valid chemistry/coordinate
+records. The weighted confidence limits stay missing. The weights describe
+occupied cells; they do not establish independent observations, measurement
+precision or concentrations in unsampled terrain. The remaining sections show
+how to review inputs, methods and spatial support before using this workflow
+with actual NGDB records.
+
+## Export, read and analyze the same text records
+
+Version 1.2.0 adds an optional disk-export workflow. Here the input is the
+same small synthetic example above. Real exports can include all species or an
+explicit selection; neither export mode chooses analytical results or certifies
+their quality. The output path must be new and its parent must already exist.
+
+```{r disk-roundtrip}
+example_root <- tempfile("geocensor_workflow_")
+dir.create(example_root)
+example_input <- file.path(example_root, "chemistry.csv")
+disk_input <- quick_chemistry[c("lab_id", "species", "unit", "qvalue", "domain", "amethod")]
+readr::write_csv(disk_input, example_input)
+exported <- export_usgs_chemistry(example_input,
+  file.path(example_root, "exported"), chunk_size = 10)
+imported <- read_usgs_chemistry(exported$data_file)
+stopifnot(identical(imported, tibble::as_tibble(disk_input)))
+import_info <- readRDS(exported$info_file)
+c(input_records = import_info$n_input, exported_records = import_info$n_selected)
+
+roundtrip <- analyze_elements(imported, group_cols = "domain")
+reference <- analyze_elements(disk_input, group_cols = "domain")
+stopifnot(identical(roundtrip$estimates, reference$estimates))
+knitr::kable(roundtrip$estimates[c("domain", "n_total", "n_exact", "method", "geomean")],
+  digits = 3)
+unlink(example_root, recursive = TRUE)
+```
+
+Leading-zero identifiers, numeric text, missing method information and every
+input record survive this round trip. The all-left and constant-code outcomes
+remain unavailable. This is a software example, not validation of population
+confidence limits. The separate source-record index describes file positions,
+not independent sites. Source and output fingerprints document content; they
+do not establish analytical reliability. See `?export_usgs_chemistry` for output
+ownership, late-error protection and resource limitations.
+
 ## Start with one sampling medium
 
 Real input tables contain one selected chemistry result per sample and species,
-plus sample metadata. Read sample IDs as text to preserve leading zeroes:
+plus sample metadata. Read chemistry fields as text to preserve identifiers,
+numeric encodings and sparse qualifiers:
 
 ```{r real-input, eval=FALSE}
-chemistry <- readr::read_csv(
-  "ngdbsoil/bestvalue.csv",
-  col_types = readr::cols(lab_id = readr::col_character())
-)
+chemistry <- read_usgs_chemistry("ngdbsoil/bestvalue.csv")
 metadata <- read_clean_main("ngdbsoil/main.csv")
 ```
+
+`read_usgs_chemistry()` requires 1.2.0 and rejects malformed CSV records and
+duplicate/empty headers. Blank/literal NA fields are missing; other source text
+is retained, including trailing numeric zeroes and rare G/L qualifiers. Value
+validation and censoring follow the ordinary builders. Both installed analysis
+commands use this reader. The all-species command explicitly parses only the
+requested projected metadata coordinates and stops on invalid coordinate text.
 
 Run soil and sediment separately. Before pooling, decide which depths, horizons,
 size fractions, sample media, and analytical methods describe your intended
@@ -51,7 +135,8 @@ metadata$country <- "United States"
 metadata$x_m <- metadata$easting * 10000
 metadata$y_m <- metadata$northing * 10000
 metadata$depth <- rep(c("0-10 cm", "10-20 cm", "0-10 cm"), nrow(sites))
-metadata$horizon <- rep(c("A", "B", "A"), nrow(sites))
+metadata$sample_zone <- rep(c("A", "B", "A"), nrow(sites))
+metadata$horizon <- "well defined"
 metadata$mesh_size <- rep(c("<80 mesh", "<80 mesh", "<200 mesh"), nrow(sites))
 
 make_element <- function(element, center, lod, upper) {
@@ -73,12 +158,29 @@ The example contains multiple supports at each site. That is a reason to review
 comparability, not to assume that all samples at the same coordinates are
 interchangeable.
 
+## Review reported analytical methods
+
+The illustrative method label above has not been reviewed and must not be
+interpreted as quantitative merely because it is nonblank. This small metadata
+example shows documented semiquantitative codes and unresolved methods:
+
+```{r method-review}
+flag_analytical_methods(data.frame(amethod = c("ES_SQ", "ES_H2O_P", "unreviewed", NA)))
+```
+
+The review preserves reported values and validity status. It does not supply
+numeric class bounds or an otherwise missing reporting design. Uncensored
+coding is not the same as verified measurement precision. Batch results include
+a separate `methods` table; method concerns do not disappear when count-based
+review thresholds clear. Declustering counts use the observations with usable
+chemistry and coordinates for that fit. No routine spatial limits are added.
+
 ## Audit sampling support and joins
 
 ```{r audit}
 support <- sampling_support_audit(
   metadata, group_cols = "state",
-  support_cols = c("depth", "horizon", "mesh_size"),
+  support_cols = c("depth", "sample_zone", "horizon", "mesh_size"),
   x_col = "x_m", y_col = "y_m"
 )
 support$fields
@@ -93,17 +195,21 @@ Unknown metadata must not be interpreted as evidence of equivalence.
 ```{r parsing}
 ag <- build_element(chemistry, "Ag")
 ag[c("lab_id", "qvalue_raw", "detected_val", "left_cen", "right_cen",
-     "validation_status", "censoring_source")][1:6, ]
+     "validation_status", "censoring_source", "summary_recovery_status")][1:6, ]
 ```
 
 Supported mass-fraction units are converted to ug/kg. Invalid values and
 unsupported units receive explicit validation reasons. When an explicit
-upper-censor marker in the first summary analysis agrees with rounded qvalue,
-the builder recovers it while retaining the original reported value.
+upper-censor marker in a well-formed first summary analysis agrees with rounded
+qvalue, a known method matches and coding is compatible, the builder recovers it
+while retaining the original reported value. Missing/UNKNOWN or mismatched methods
+and incompatible coding block recovery; the original value/qualifier are parsed
+as reported and summary_recovery_status explains the block. This does not certify
+analytical precision or reliability.
 
 ```{r join}
 ag_main <- join_soil_main(ag, metadata,
-  extra_cols = c("state", "country", "x_m", "y_m", "depth", "horizon", "mesh_size"))
+  extra_cols = c("state", "country", "x_m", "y_m", "depth", "sample_zone", "horizon", "mesh_size"))
 attr(ag_main, "join_audit")
 ```
 
@@ -121,7 +227,7 @@ NGDB filtering rule.
 
 ```{r estimation}
 selected_ids <- metadata$lab_id[
-  metadata$depth == "0-10 cm" & metadata$horizon == "A" & metadata$mesh_size == "<80 mesh"
+  metadata$depth == "0-10 cm" & metadata$sample_zone == "A" & metadata$mesh_size == "<80 mesh"
 ]
 selected_chemistry <- chemistry[chemistry$lab_id %in% selected_ids, ]
 results <- analyze_elements(
@@ -140,6 +246,80 @@ are added without changing or filtering estimates. By default fewer than 10
 exact observations or less than 5% exact observations triggers review. These
 are configurable conventions, not validated statistical cutoffs, and a cleared
 flag does not establish model adequacy or spatial independence.
+Distribution-comparison rows also retain analytical-method review counts/status,
+even when fitting is unavailable. A relative AIC winner does not clear unknown
+or semiquantitative measurement concerns.
+
+## Compare recorded methods within the selected domain
+
+An optional sensitivity table separates normalized method labels while keeping
+the pooled outputs unchanged. To illustrate the interface, assign two synthetic
+labels to the example's existing observations:
+
+```{r method-strata}
+method_example <- selected_chemistry
+method_example$amethod <- ifelse(as.integer(method_example$lab_id) %% 2L == 0L,
+  "illustrative_method_a", "illustrative_method_b")
+method_example$summary <- paste(sub(",.*$", "", method_example$summary),
+  method_example$amethod, sep = ", ")
+method_check <- analyze_elements(method_example, main_df = metadata,
+  group_cols = "state", stratify_methods = TRUE)
+head(method_check$method_estimates[c("element", "state", "method_code",
+  "n_input", "n_total", "geomean", "method_information", "review_status")])
+```
+
+These illustrative labels are unreviewed, and their assignment does not change
+the reported values. The table describes unweighted chemistry subsets, including
+records without usable coordinates. Missing method labels remain an unresolved
+NA bucket; UNKNOWN is separate and does not identify a shared procedure. A
+difference between method summaries can reflect geography, geology, sampling
+support or selection as well as analytical differences. This is not a calibration
+or an estimate of analytical bias. Model confidence limits retain their ordinary
+independence assumptions; spatial confidence limits remain experimental.
+
+## Review geographic overlap before interpreting method differences
+
+Use one element and the selected sampling support/domain. Here the two synthetic
+method labels can be checked on the illustrative Wisconsin Ag observations:
+
+```{r method-overlap}
+method_geo <- join_soil_main(build_element(method_example, "Ag"), metadata,
+  extra_cols = c("state", "x_m", "y_m"))
+method_geo <- method_geo[method_geo$state == "WI", ]
+overlap <- method_spatial_overlap(method_geo,
+  cell_sizes = c(5000, 10000, 20000), x_col = "x_m", y_col = "y_m")
+overlap$support
+overlap$pairs[c("cell_size", "method_a", "method_b", "n_spatial_a", "n_spatial_b",
+  "shared_cells_mean", "jaccard_min", "jaccard_mean", "jaccard_max")]
+```
+
+Jaccard is the fraction of the union of occupied cells shared by the two labels.
+Both labels use the same grid at each placement; the reported range describes
+grid-placement sensitivity, not a confidence interval. An unlocated or invalid-
+only method has missing comparison metrics rather than zero overlap. Missing
+method labels remain explicit in the method coverage table and do not enter
+named pairs. Shared cells do not establish paired samples, matching physical
+support, analytical agreement or independence. No concentration or method-bias
+model is fitted, and nothing is inferred for unsampled terrain.
+
+The same audit can be requested for every element and state in the selected
+example, with optional method-specific estimates kept as a separate table:
+
+```{r batch-method-overlap}
+geographic <- analyze_elements(method_example, main_df = metadata,
+  group_cols = "state", cell_sizes = c(5000, 10000, 20000),
+  x_col = "x_m", y_col = "y_m", n_offsets = 2,
+  stratify_methods = TRUE, audit_method_overlap = TRUE)
+geographic$method_overlap_support
+head(geographic$method_coverage)
+head(geographic$method_overlap)
+```
+
+All original components remain unchanged. The three appended audit tables are
+labelled by element/domain, use the supplied grid placements, and retain
+unavailable comparisons as missing. The batch default n_offsets is 10 (100
+placements), whereas the standalone audit defaults to 2. These optional summaries
+do not select analytical methods, change concentrations or add spatial limits.
 
 ## Assess sensitivity to clustering
 
@@ -186,14 +366,123 @@ Each vertical range shows the possible cumulative fraction at that threshold,
 given the exact values, censoring limits and weights. It does not interpolate
 between thresholds, replace nondetects with a fraction of their limits, or fit
 a lognormal distribution. The bounds describe this empirical dataset; they
-are not population confidence bands. Sampling and spatial uncertainty remain
-even when bounds coincide. A state boundary alone does not establish a
+are not population confidence bands. The support table and plot retain method
+review for the valid, positive-weight records. Exact values here describe
+uncensored coding, not verified measurement precision; no semiquantitative
+reporting-class interval is inferred. Measurement, sampling and spatial
+uncertainty remain even when bounds coincide. A state boundary alone does not establish a
 homogeneous geological population in real data.
 
 The existing fitted/nonparametric censored CDF display can be used for model
 comparison where fitting is appropriate. A relative AIC winner does not prove
 model adequacy. Thinning records until a normality test stops rejecting would
 remove test power rather than establish an adequate model.
+
+## Keep recorded-position memberships explicit
+
+The support audit can return each original metadata row's membership in an
+exact-coordinate review group:
+
+```{r position-memberships}
+position_support <- sampling_support_audit(
+  metadata, group_cols = "state", x_col = "x_m", y_col = "y_m",
+  include_memberships = TRUE
+)
+head(position_support$memberships[c("lab_id", "recorded_position_group",
+  "n_records_at_position", "position_membership_status", "review_shared_position")])
+head(position_support$coordinate_groups)
+stopifnot(identical(position_support$memberships[names(metadata)], tibble::as_tibble(metadata)))
+```
+
+The two optional tables are available in1.2.0. Groups span analysis-domain
+labels, while the existing locations table remains domain-specific. Group IDs are
+stable under row reordering within a cohort, not durable physical-site identifiers.
+Missing/nonfinite coordinates remain unlocated with unknown group membership and
+size. Singletons are not cleared for spatial independence, and shared positions
+do not prove sample equivalence or replication. Nothing is collapsed, filtered,
+weighted or automatically assigned to validation folds.
+
+## Save a metadata audit with its source and conversion record
+
+The installed file workflow reads all source fields as text, preserves a raw
+snapshot and records coordinate conversion explicitly. This synthetic example
+uses temporary paths:
+
+```{r sampling-file}
+metadata_csv <- tempfile(fileext = ".csv")
+readr::write_csv(metadata, metadata_csv, na = "")
+support_folder <- tempfile("geocensor_support_")
+saved_support <- audit_sampling_file(metadata_csv, support_folder,
+  group_cols = "state", x_col = "x_m", y_col = "y_m", include_memberships = TRUE)
+head(saved_support$coordinate_conversion)
+list.files(support_folder)
+stopifnot(nrow(saved_support$input_metadata) == nrow(metadata))
+```
+
+In1.2.0, `audit_sampling_file()` and the installed
+`examples/audit_sampling_support.R` command export the same raw metadata, audit,
+conversion and run/session records. Trimmed blank and literal NA values are
+missing in the analysis copy; source text remains in the raw table and membership
+columns. Invalid coordinate strings stop the run before output creation.
+Coordinate units/reference systems are supplied by the user, not guessed.
+Choose a new or empty output directory to preserve previous results.
+
+## Keep source-value review separate from estimation
+
+Some best-value exports differ in numeric precision from their associated
+source-summary entries. Review these differences without selecting a replacement:
+
+```{r source-precision-review}
+source_example <- tibble::tibble(
+  lab_id = c("001", "002", "003", "004"),
+  species = c("Mn", "Mn", "S", "Ag"),
+  unit = c("pct", "pct", "pct", "ppm"),
+  qvalue = c("0.05", "0.06", "10.11", "-2"),
+  amethod = c("AES_HF", "UNKNOWN", "CB_IRC", "AES_HF"),
+  summary = c("0.054, AES_HF", "0.064, UNKNOWN", "10.11111, CB_IRC", "-2, AES_HF")
+)
+source_check <- analyze_elements(source_example, audit_source_precision = TRUE)
+source_check$source_precision[c("lab_id", "species", "unit", "qvalue",
+  "summary_numeric_delta", "summary_precision_status")]
+source_check$source_precision_summary
+stopifnot(identical(source_check$source_precision[names(source_example)], source_example))
+```
+
+The row-level audit preserves original requested order, IDs and chemistry.
+Its numeric differences and candidates use the input units, here pct or ppm;
+estimator outputs use ug/kg. UNKNOWN labels cannot establish method association.
+Missing summaries and unresolved coding remain explicit. The summary counts all
+input rows, including any excluded from fitting, and no audit rows are invented
+for absent species. Metadata-only grouping fields are appended if requested.
+
+No source-audit candidate replaces an estimator input, and enabling that audit
+does not change the method/coding guard on upper-limit recovery. A precision difference does not quantify
+measurement error, while agreement does not certify measurement reliability.
+Small examples here have insufficient information for fitting; the audit remains
+available independently. Both installed commands expose the same opt-in as
+`--audit-source-precision` and export the two extra CSV/RDS components. Their
+batch audit requires installed version1.2.0 or newer; current command scripts
+require1.2.0 so they use guarded recovery and chemistry imports.
+
+The recovery safeguard itself requires1.2.0. Here the reported value and
+summary are identical across rows, but method association differs:
+
+```{r upper-recovery-guard}
+recovery_example <- tibble::tibble(
+  lab_id = c("001", "002", "003"), species = "S", unit = "pct",
+  qvalue = "10.11", amethod = c("CB_IRC", "AES_HF", NA_character_),
+  summary = "10.11111, CB_IRC"
+)
+recovered <- build_element(recovery_example, "S", to_ugkg = FALSE)
+recovered[c("lab_id", "qvalue_raw", "detected_val", "right_limit",
+  "censoring_source", "summary_recovery_status")]
+stopifnot(identical(recovered$right_cen, c(TRUE, FALSE, FALSE)))
+```
+
+The last two rows retain their original uncensored coding and a separate review
+status; they are not converted to another method's upper limit. Explicit original
+G/> or suffix-coded upper limits remain available without a summary. No dilution
+factor is inferred or applied.
 
 ## Treat spatial intervals as experimental
 

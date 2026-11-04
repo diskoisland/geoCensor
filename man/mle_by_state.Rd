@@ -13,7 +13,8 @@ mle_by_state(ag_main, country_codes = c("US", "USA", "UNITED STATES", "U.S."))
 \item{country_codes}{Acceptable country values (upper-case).}
 }
 \value{
-Tibble with one row per state: geomean, CI, counts.
+Tibble with one row per state: geomean, CI, counts and state-specific
+analytical-method review counts/status from \code{\link[=fit_cen_lognorm]{fit_cen_lognorm()}}.
 }
 \description{
 Fit state-level lognormal MLE geomeans (censoring aware)

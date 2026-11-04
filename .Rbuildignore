@@ -4,6 +4,7 @@
 ^\.gitignore$
 ^\.\.Rcheck$
 ^CITATION\.cff$
+^LICENSE\.md$
 ^geoCensor_[0-9.]+\.tar\.gz$
 ^geoCensor\.Rcheck$
 ^output$

@@ -37,6 +37,9 @@ A list of class geocensor_cdf_bounds, containing cdf (threshold,
 cdf_lower, cdf_upper, censoring_gap) and support (usable/excluded counts,
 censoring-weight shares and Kish weight effective n). Empty usable subsets
 have missing CDF values and weight fractions.
+Analytical-method review counts/status are appended to support; see
+\code{\link[=flag_analytical_methods]{flag_analytical_methods()}}. Used counts exclude invalid and zero-weight
+rows and describe records, not their share of weight.
 }
 \description{
 Calculates the minimum and maximum possible empirical cumulative fraction
@@ -58,6 +61,9 @@ correction for preferential sampling. Even when both bounds coincide,
 sampling and spatial uncertainty remain. Weights do not provide concentrations
 in unobserved cells. Apply within a defined sampling medium/domain.
 Censored rows follow the same validation/exclusion rules as \code{\link[=fit_cen_lognorm]{fit_cen_lognorm()}}.
+Exact observations here describe uncensored input coding, not verified
+measurement precision. Method concerns remain visible even when the bounds
+coincide. No semiquantitative reporting-class interval is inferred.
 }
 \seealso{
 \code{\link[=plot_censored_cdf_bounds]{plot_censored_cdf_bounds()}}, \code{\link[=declustering_sensitivity]{declustering_sensitivity()}}

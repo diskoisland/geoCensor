@@ -54,7 +54,9 @@ cell_declustering_weights <- function(df, x_col, y_col, cell_size, n_offsets = 1
       width <- max(ix) + 1
       # Numeric cell keys avoid allocating strings for large national datasets.
       # Fall back to strings when the combined key would lose integer precision.
-      cells <- if (width * (max(iy) + 1) <= 2^52) ix + width * iy else paste(ix, iy, sep = ":")
+      # Format integer indices losslessly; default text conversion can merge cells.
+      cells <- if (width * (max(iy) + 1) <= 2^52) ix + width * iy else
+        paste(sprintf("%.0f", ix), sprintf("%.0f", iy), sep = ":")
       index <- match(cells, unique(cells))
       counts <- tabulate(index)
       averaged <- averaged + 1 / (length(counts) * counts[index])
@@ -93,6 +95,8 @@ cell_declustering_weights <- function(df, x_col, y_col, cell_size, n_offsets = 1
 #' on exact values can make location and scale estimation sensitive even when
 #' many raw records are present. No new exclusion rule or confidence interval
 #' follows from these fractions.
+#' Method-review counts use the same chemistry/coordinate subset as the fit.
+#' Input counts include all supplied rows; see [flag_analytical_methods()].
 #' @export
 declustering_sensitivity <- function(df, cell_sizes, x_col, y_col, n_offsets = 10) {
   if (!is.numeric(cell_sizes) || !length(cell_sizes) ||
@@ -111,11 +115,14 @@ declustering_sensitivity <- function(df, cell_sizes, x_col, y_col, n_offsets = 1
   left <- intervals$lower[usable] == 0
   right <- is.infinite(intervals$upper[usable])
   baseline <- fit_cen_lognorm(subset)
+  method_audit <- .summarize_analytical_methods(df, usable)
   dplyr::bind_rows(lapply(cell_sizes, function(size) {
     weights <- cell_declustering_weights(subset, x_col, y_col, size, n_offsets)
     weighted_data <- subset
     weighted_data$.declustering_weight <- weights
     fit <- fit_cen_lognorm(weighted_data, weight_col = ".declustering_weight")
+    # Retain original input counts while describing the coordinate-eligible fit.
+    fit[names(method_audit$summary)] <- method_audit$summary
     fraction <- function(index) {
       if (length(weights) && sum(weights) > 0) sum(weights[index]) / sum(weights) else NA_real_
     }

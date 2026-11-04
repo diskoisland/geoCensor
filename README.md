@@ -2,7 +2,9 @@
 
 **Censoring-aware analysis of USGS National Geochemical Database (NGDB) data.**
 
-Source version **1.1.0**. See [NEWS.md](NEWS.md) for changes and compatibility notes.
+Source version **1.2.0**. Published versions and downloadable assets are listed
+on the [releases page](https://github.com/diskoisland/geoCensor/releases). See
+[NEWS.md](NEWS.md) for changes and compatibility notes.
 
 I wrote geoCensor for working with USGS National Geochemical Database tables where a lot of the useful information is tucked inside detection limits, qualifiers, and non-detects. Those details matter: in the NGDB, detection limits vary by method and over time, so dropping non-detects or replacing everything with LOD/2 can move the center of the data in ways that are hard to see later.
 
@@ -11,7 +13,11 @@ The package turns USGS `qvalue` and `qualifier` fields into concentration interv
 To generate the MLE:
 1. non-detects were coded as `(0, LOD]`;
 2. greater-than values were coded as `(ULOD, Inf)`; and
-3. measured detections were treated as exact concentrations.
+3. unqualified detections were treated as point observations under the working model.
+
+That last coding rule does not certify measurement precision. Documented
+semiquantitative methods retain review flags; reporting-class bounds are not
+inferred from a method label.
 
 The lognormal model is fit with `survival::survreg(..., dist = "lognormal")`, and `exp(meanlog)` is used as the geometric mean.
 
@@ -28,17 +34,62 @@ detection limit,” *Environmental Science & Technology* 24(12), 1766-1774,
 
 
 A runnable, synthetic end-to-end example is available in the
-[USGS workflow vignette](vignettes/usgs-workflow.Rmd). Installed packages can
-open it with `vignette("usgs-workflow", package = "geoCensor")`.
+[USGS workflow vignette](vignettes/usgs-workflow.Rmd). For a real-data workflow,
+use the [Upper Illinois case study](vignettes/illinois-case-study.Rmd), covering
+all reported species, sampling-support audits and 5/10/20 km declustering.
+It includes an installed script that selects the project from user-downloaded
+USGS exports without chemistry filtering; raw data are not bundled. The optional
+sf package prepares projected coordinates, or users can supply reviewed
+EPSG:5070 coordinates. Installed packages can open either guide:
+
+```r
+vignette("usgs-workflow", package = "geoCensor")
+vignette("illinois-case-study", package = "geoCensor")
+system.file("examples", "illinois_case_study.R", package = "geoCensor")
+```
 
 ## Installation
 
 Release changes and compatibility notes are recorded in [NEWS.md](NEWS.md).
+The versioned installation below targets **v1.2.0**. During release review, use
+the checked source archive; the tag is available only after publication on the
+[releases page](https://github.com/diskoisland/geoCensor/releases).
 
 ```r
 # install.packages("remotes")
-remotes::install_github("diskoisland/geoCensor")
+remotes::install_github("diskoisland/geoCensor@v1.2.0")
+
+# Or install an obtained and checksum-verified source archive:
+# install.packages("/path/to/geoCensor_1.2.0.tar.gz", repos = NULL, type = "source")
 ```
+
+Run the selected installation command. After upgrading a package already loaded
+in R, restart R before using the new functions. Then check the installed and
+loaded versions:
+
+```r
+library(geoCensor)
+packageVersion("geoCensor")
+getNamespaceVersion("geoCensor")
+```
+
+The `.tar.gz` is the source installer on macOS, Linux and Windows (build tools
+may be needed). A review-bundle ZIP contains evidence and is not an R package
+installer. Use `packageDescription("geoCensor")` for package metadata; the archive
+filename is not a package name.
+
+| Installed workflow | Minimum package version |
+| --- | --- |
+| `audit_sampling_support.R` | 1.2.0 |
+| `analyze_all_elements.R` | 1.2.0 |
+| `analyze_element_dataset.R` | 1.2.0 |
+| `export_chemistry.R` | 1.2.0 |
+
+These commands require the final 1.2.0 capabilities and are not supplied by
+v1.1.0. An earlier local candidate labeled 1.2.0 can lack those features;
+reinstall the checked release and restart R. Commands check capabilities as well
+as the version, so the final release is accepted without silently accepting an
+incomplete candidate. See the [release checklist](RELEASE_CHECKLIST.md).
 
 ## Quick start
 
@@ -62,11 +113,14 @@ head(gm_by_state)        # state, n_total, n_left, n_right, geomean, ci_low, ci_
 coverage_by_state <- spatial_coverage_by_state(ag_main)
 gm_by_state <- dplyr::left_join(gm_by_state, coverage_by_state, by = "state")
 
-# 5. National pooled estimate
-fit_cen_lognorm(ag_main)
+# 5. Descriptive pooled fit for the supplied records; review the domain first
+pooled <- fit_cen_lognorm(ag_main)
+pooled
 
-# 6. Inspect the fitted lognormal model
-plot_lognormal_fit(ag_main)
+# 6. Inspect the fitted model when estimation is available
+if (pooled$method == "survreg_lognormal_MLE_L+R") {
+  plot_lognormal_fit(ag_main)
+}
 
 # 7. Map / rank
 plot_ranked_bar(gm_by_state)
@@ -99,7 +153,7 @@ chemistry or best-value CSV:
 Rscript inst/examples/analyze_element_dataset.R data/ngdbsoil/bestvalue.csv Ag output/Ag
 ```
 
-This requires the installed geoCensor package. Replace `Ag` with another element
+This requires installed geoCensor 1.2.0 or newer. Replace `Ag` with another element
 symbol. The workflow converts supported units (`ppm`, `mg/kg`, `ppb`, `ug/kg`, micro-symbol equivalents, and percent units) to ug/kg and
 exports normalized observations, the pooled estimate, censored distribution
 comparisons, a fitted CDF plot when estimation succeeds, serialized results,
@@ -109,8 +163,79 @@ Input validation retains invalid chemistry rows with missing concentration field
 and an explicit `validation_status`: missing or invalid values, nonpositive
 detections, invalid limits, conflicting encodings, unknown qualifiers, or
 unsupported units. Blank/missing, `L`, `N`, `<`, `G`, and `>` qualifiers are accepted;
-other codes need review before use. CSV imports preserve leading zeroes in
-sample identifiers.
+other codes need review before use. Read chemistry with `read_usgs_chemistry()`
+or `build_ag_from_csv()`. Both installed analysis commands use the same reader.
+All chemistry columns remain character, preserving leading-zero/large identifiers,
+numeric text and sparse qualifiers. Blank fields and literal NA are missing;
+other text is retained. Malformed CSV records and duplicate/empty headers stop
+before analysis. A value such as `4.11110` retains its trailing zero and cannot
+acquire an upper-censoring suffix through numeric type guessing.
+
+```r
+chemistry <- read_usgs_chemistry("ngdbsoil/bestvalue.csv")
+```
+
+For an explicit subset of species from a large file, use the optional batch reader
+(version 1.2.0 or newer):
+
+```r
+selected <- read_usgs_chemistry_select("ngdbsed/chemistry.csv", c("Ag", "Pb"),
+                                       chunk_size = 10000)
+chemistry <- selected$data
+source_records <- selected$source_rows
+```
+
+Selection matches species exactly and preserves original text columns and order.
+The separate index contains one-based parsed data-record ordinals, excluding the
+header and empty lines; quoted multiline fields still belong to one record.
+These ordinals do not establish sample identity or independent sites. Every
+batch is parsed, including unselected records; late malformed records abort the
+read without returning a partial result. Absent species yield no observations.
+Only parser batches are bounded: retained output and final binding still grow
+with selected-record count. Keep the source file unchanged while reading.
+
+The single-element command accepts `--chunk-size=10000` to select its requested
+element during import and save a separate `input_record_index.csv` aligned with
+`observations.csv`. Without this option it keeps the whole-file reader. The
+all-element command also keeps its existing default.
+
+For exports that should stay on disk, version **1.2.0** adds a separate
+opt-in workflow:
+
+```r
+exported <- export_usgs_chemistry("ngdbsed/chemistry.csv", "output/chemistry_export")
+# Or select exact species labels: elements = c("Ag", "Pb")
+readRDS(exported$info_file) # input fingerprint, selection and record counts
+```
+
+```sh
+Rscript inst/examples/export_chemistry.R chemistry.csv output/chemistry_export --elements=Ag,Pb --chunk-size=10000
+```
+
+Omitting species selection exports every record, including missing species.
+The parent directory must exist and the output path must be new. The export
+contains original text columns in `chemistry.csv`, a separate aligned
+`source_rows.csv`, import provenance in `export_info.rds`, and checksums in
+`export_files.csv`. Read exported chemistry with `read_usgs_chemistry()` to
+preserve character types. Blank/literal-NA fields follow the declared missing
+policy; this is not a byte-for-byte copy of the CSV encoding.
+
+Every batch is validated before the staged directory is published. Source
+size/MD5 checks before and after parsing must agree. An owned sibling reservation
+coordinates concurrent calls; existing outputs and reservations are rejected.
+Ordinary errors clean up that reservation, while forced termination may leave
+it for inspection. Other programs must leave these paths and the source untouched
+during export. Selected data frames are not accumulated, but total process memory
+and disk requirements still depend on the input and output. No analytical
+reliability or independent-site status is established by these fingerprints.
+
+The all-element command reads metadata as text and parses only explicitly
+supplied projected-coordinate columns as numeric. Blank/NA and explicit nonfinite
+coordinates remain unlocated. Invalid coordinate text stops
+before outputs are saved. Supply an appropriate CRS and coordinate units; neither
+is inferred. Source-precision exports retain character source values/IDs rather
+than guessed numeric columns. In-memory builder/analysis APIs retain their
+existing input-type behavior.
 
 Metadata joins reject duplicate or blank metadata IDs, warn about unmatched
 or repeated chemistry IDs, and retain chemistry rows without multiplying them.
@@ -119,12 +244,221 @@ repeated sample/element pairs instead of averaging them; choose the appropriate
 result explicitly before widening. Their `validation_summary` attribute records
 usable and excluded input counts.
 
+## Save a reproducible metadata audit
+
+```r
+run <- audit_sampling_file(
+  "metadata.csv", "output/support_review", group_cols = "state",
+  x_col = "long_wgs84", y_col = "lat_wgs84", include_memberships = TRUE
+)
+```
+
+This workflow requires1.2.0 and a new or empty output directory. It exports
+support/membership tables, raw metadata, coordinate conversions, RDS, input MD5,
+configuration and session information. Fields are read as text to retain IDs and
+formatting. The analysis copy treats trimmed blank/NA as missing; exported raw
+metadata and membership source columns preserve original text. Location/group
+coordinates are numeric, with each conversion recorded separately.
+
+The installed `examples/audit_sampling_support.R` command provides the same run:
+
+```text
+Rscript audit_sampling_support.R metadata.csv output/support_review --group-cols=state --coords=long_wgs84,lat_wgs84 --memberships
+```
+
+Use `system.file("examples", "audit_sampling_support.R", package = "geoCensor")`
+to locate the installed script. Optional `--support-cols=depth,mesh_size` and
+`--id-col=lab_id` select fields explicitly. Without coordinates or memberships,
+the command exports the ordinary field/combination audit. Invalid coordinate
+text stops before saving; blank/NA and nonfinite coordinates remain unlocated.
+Existing nonempty destinations and duplicate/unknown options are rejected.
+No CRS, units, dates, physical identity, independence or dilution is inferred.
+
+## Link records to recorded-position review groups
+
+```r
+support <- sampling_support_audit(
+  metadata, group_cols = "state", x_col = "long_wgs84", y_col = "lat_wgs84",
+  include_memberships = TRUE
+)
+support$memberships
+support$coordinate_groups
+```
+
+This opt-in requires1.2.0. It preserves every original metadata row/column,
+including raw IDs and unlocated records. Exact numeric coordinate pairs define
+global review groups across analysis domains. Existing domain-specific locations
+and the other default support-audit components remain unchanged. Coordinates must
+use a common reference system; no transformation or physical-site identity is inferred.
+
+Missing coordinates remain unlocated with NA group/count fields. Position labels
+are cohort-specific, stable under row reordering, and are not permanent site IDs.
+Repeated positions receive a review flag; singletons are not certified independent.
+No records are collapsed or assigned weights. These memberships can support
+explicit decisions about which records to hold together in later validation.
+
+## Audit source-summary precision
+
+For best-value tables with a USGS `summary` column, compare the reported number
+with its first explicitly associated source entry:
+
+```r
+source_review <- audit_summary_precision(chemistry)
+source_review[c("lab_id", "species", "unit", "qvalue",
+                "summary_precision_status", "summary_numeric_delta")]
+
+reviewed_run <- analyze_elements(chemistry, audit_source_precision = TRUE)
+reviewed_run$source_precision_summary
+```
+
+Batch auditing requires geoCensor **1.2.0** or newer. The all-element command
+requires **1.2.0**; the single-element command requires **1.2.0**.
+The opt-in adds `source_precision` and `source_precision_summary`; existing
+estimates, validation, method tables and spatial weights stay unchanged. The
+row table retains requested input order, raw IDs/values/units and all original
+chemistry columns. Metadata-only grouping columns are appended when requested.
+Candidates and numeric differences retain each row's original units, while
+estimates continue to use ug/kg. Counts include input rows excluded from fitting.
+
+Differences are source-representation evidence, not estimated analytical error.
+No candidate replaces an estimator input. Missing summaries, malformed entries,
+method mismatches, UNKNOWN labels and coding conflicts stay explicit. Existing
+enabling the audit does not change parser recovery; it compares the original
+input before recovery. A matching value does not certify analytical accuracy.
+
+Both installed commands accept `--audit-source-precision`, alone or with
+`--stratify-methods`; the all-element command can also combine it with
+`--method-overlap`. They export `source_precision.csv` and
+`source_precision_summary.csv` plus the corresponding RDS components only when
+requested. Choose a new output directory for each run.
+
+## Review analytical methods
+
+```r
+reviewed <- flag_analytical_methods(chemistry)
+reviewed[c("amethod", "method_review_status", "review_semiquantitative")]
+```
+
+The USGS codes `ES_SQ` and `ES_H2O_P` are documented semiquantitative methods.
+They receive a review flag and documentation source. Missing/blank methods,
+`UNKNOWN`, and other codes remain unresolved; an NA flag does not certify a
+quantitative measurement. Original values, method labels, censoring fields and
+validation statuses are preserved. The helper supplies no numeric reporting-class
+bounds, detection limits or laboratory/era assumptions.
+
+`build_element()` adds these fields automatically. `analyze_elements()` adds
+method counts/status to estimates and a `methods` table with input and unweighted
+fit-subset counts. Declustering summaries use their own chemistry/coordinate
+subset, so a flagged record without usable coordinates is not counted as used
+in a spatial fit. Installed single/all-element commands export `methods.csv`.
+Direct `fit_cen_lognorm()` and `fit_lognorm_with_quants()` calls, and
+`mle_by_state()`, also retain method counts/status. Custom censoring columns
+and zero-weight exclusions use the same eligible subset as their fit.
+“Used” means eligible input even when the fit is insufficient or fails.
+Plots include method-review counts in saved captions and reject numerical
+fit failures before drawing a fitted curve. When every usable interval includes
+the same uncensored-coded value, a positive-scale lognormal maximum does not
+exist: the fitted mean, limits and quantiles remain missing, and no fitted curve
+is drawn. Records, method flags and empirical censoring bounds remain available.
+Distribution comparisons retain method counts/status for every candidate,
+including failed or insufficient fits. Empirical CDF bounds append the same
+review fields to `support` using their own valid, positive-weight subset.
+CDF plots retain these cautions; older saved results explicitly report missing
+method-review information rather than reconstructing it.
+
+Count-based review remains separate: `n_exact` counts uncensored input coding,
+not verified measurement precision. A result can clear the count thresholds
+and still require method review. No estimates are filtered or changed by these
+annotations, and spatial confidence limits remain experimental.
+
+### Compare recorded methods before pooling
+
+```r
+method_check <- analyze_elements(
+  chemistry, main_df = metadata, group_cols = "state",
+  stratify_methods = TRUE
+)
+method_check$method_estimates[c("element", "state", "method_code", "n_input",
+  "n_total", "geomean", "method_information", "review_status")]
+```
+
+This optional table separates unweighted summaries by normalized method code
+within each element/domain. Matching trims spaces and ignores case; original
+labels stay intact. Blank/absent methods remain an unresolved NA bucket, with
+`UNKNOWN` separate. A missing-method bucket does not establish a shared
+procedure. Unusable inputs, insufficient groups and failed fits remain explicit.
+The six existing result tables and pooled estimates are unchanged. Method
+summaries use chemistry eligibility, including records without usable coordinates.
+
+Differences between method strata can also reflect location, geology, sample
+support, era or preferential sampling. They are descriptive sensitivity results,
+not a calibration or an estimate of analytical bias. Ordinary confidence limits
+still assume independent observations and a suitable lognormal model.
+
+Both installed commands accept `--stratify-methods` and then export
+`method_estimates.csv` as well as the usual outputs. This feature requires
+version 1.2.0 or newer.
+Choose a new or empty output directory for each command run; existing results
+are preserved so optional tables and plots cannot be confused with a later run.
+
+### Check whether method groups cover the same area
+
+For one selected element, medium and domain, use valid chemistry with projected
+coordinates to inspect overlap at several cell widths:
+
+```r
+overlap <- method_spatial_overlap(
+  analysis_data, cell_sizes = c(5000, 10000, 20000),
+  x_col = "x_m", y_col = "y_m", n_offsets = 2
+)
+overlap$support
+overlap$methods
+overlap$pairs
+```
+
+All methods share the same grid at each placement. Pair summaries report shared
+cells, their union and the shared/union fraction (Jaccard), with minima/means/
+maxima across placements. These ranges describe grid sensitivity, not confidence
+limits. Missing methods remain explicit buckets outside named-method pairs.
+When a code lacks usable spatial data, comparisons stay NA rather than becoming
+zero overlap. Genuine zero overlap is reported only when both codes have data.
+
+Cells shared by two method labels do not establish paired samples, comparable
+physical support or analytical agreement. Exact coordinate pairs may be rounded
+or reused and are not independent-site counts. This descriptive audit fits no
+concentration model and does not resolve preferential sampling or unsampled areas.
+
+To run the same audit for every selected element and domain:
+
+```r
+geographic <- analyze_elements(
+  chemistry, main_df = metadata, group_cols = "state",
+  cell_sizes = c(5000, 10000, 20000), x_col = "x_m", y_col = "y_m",
+  n_offsets = 2, audit_method_overlap = TRUE
+)
+geographic$method_overlap_support
+geographic$method_coverage
+geographic$method_overlap
+```
+
+This appends three labelled audit tables and leaves existing outputs unchanged.
+It is independent of `stratify_methods = TRUE`; both options can be combined.
+The audit uses the supplied `n_offsets` (batch default 10, or 100 placements),
+whereas the standalone audit defaults to 2. Review cell sizes and placement counts
+for the intended spatial domain. The batch audit uses sorted unique cell sizes.
+
+The all-element command accepts `--method-overlap` when metadata, projected
+coordinate columns and cell sizes are supplied. It exports
+`method_overlap_support.csv`, `method_coverage.csv` and `method_overlap.csv`, plus
+the corresponding RDS components. This command now requires version 1.2.0
+or newer. Missing method/coordinate information stays explicit in those tables.
+
 ## Audit sampling support before pooling
 
 ```r
 support <- sampling_support_audit(
   metadata, group_cols = "state",
-  support_cols = c("depth", "horizon", "mesh_size"),
+  support_cols = c("depth", "sample_zone", "horizon", "mesh_size"),
   x_col = "long_wgs84", y_col = "lat_wgs84"
 )
 support$fields
@@ -132,7 +466,9 @@ support$locations
 ```
 
 Use fields actually available in your dataset; `support_cols = NULL` selects
-available standard metadata fields. Sediment metadata may omit horizon. This
+available standard metadata fields. In USGS soil exports `sample_zone` records
+the horizon zone; `horizon` records how well defined it is. Sediment metadata
+may omit both. This
 is a descriptive audit: different recorded labels and missing information are
 reported separately. Exact coordinate reuse may reflect rounding or different
 sample supports. Matching or missing labels do not establish comparability;
@@ -146,6 +482,7 @@ Analyze every nonblank species in an NGDB chemistry or best-value table:
 results <- analyze_elements(chemistry)
 results$estimates
 results$validation
+results$methods
 results$distributions
 ```
 
@@ -262,8 +599,10 @@ no censored value. Bounds can be calculated even when a concentration fit is
 unavailable. Empty usable subsets have missing bounds.
 
 These describe the supplied observations; they are not confidence bands for a
-population. Coincident bounds in fully observed data do not remove sampling or
-spatial uncertainty. Inspect distributions within sensible domains and compare
+population. Coincident bounds in uncensored input do not establish measurement
+precision or remove sampling and spatial uncertainty. These bounds condition on
+the reported censoring codes; semiquantitative class ranges are not inferred.
+Inspect distributions within sensible domains and compare
 the fitted/nonparametric CDF view from
 `plot_lognormal_fit(..., show_nonparametric = TRUE)` where fitting is appropriate.
 A model CDF outside an empirical bound is not an automatic rejection rule.
@@ -354,9 +693,14 @@ API, and weighted routine confidence limits remain missing.
 Some NGDB CSV exports round `qvalue` to two decimal places, hiding the
 upper-censoring suffix. When the first best-ranked value in `summary` contains
 an explicit suffix and rounds to the reported qvalue, the builders recover
-that upper limit. The original `qvalue_raw` is preserved and `censoring_source`
-records the recovery. Ordinary values ending in `.11` are not inferred to be
-censored from qvalue alone.
+that upper limit only when the first entry is well formed, a nonblank/non-UNKNOWN
+method matches, and both encodings are usable and compatible. The original
+`qvalue_raw` is preserved and `censoring_source` records the recovery.
+`summary_recovery_status` in long builder output records recovery or its blocking
+reason. Blocked recovery leaves the original qvalue/qualifier coding intact;
+it does not borrow another method's limit or certify the original measurement.
+This guard is new in1.2.0 and can change previously unguarded recovery.
+Ordinary values ending in `.11` are not inferred to be censored from qvalue alone.
 
 The MLE then represents left-censored observations as the interval `(0, LOD]`,
 right-censored as `(ULOD, Inf)`, and detections as exact, fitting a lognormal by
@@ -401,7 +745,7 @@ The geoCensor package **does not include geochemical data**. Instead, it is desi
 If you use geoCensor, please cite it. The repository includes citation metadata in `CITATION.cff`:
 
 > Edwards, R. (2026). *geoCensor: Censoring-Aware Analysis of USGS National
-> Geochemical Database Data* (version 1.1.0). https://github.com/diskoisland/geoCensor
+> Geochemical Database Data* (version 1.2.0). https://github.com/diskoisland/geoCensor
 
 ## License
 

@@ -14,7 +14,10 @@ analyze_elements(
   y_col = NULL,
   n_offsets = 10,
   min_exact_review = 10,
-  min_exact_fraction_review = 0.05
+  min_exact_fraction_review = 0.05,
+  stratify_methods = FALSE,
+  audit_method_overlap = FALSE,
+  audit_source_precision = FALSE
 )
 }
 \arguments{
@@ -36,16 +39,47 @@ declustering. Weights are recalculated for each element/group's usable rows.}
 
 \item{x_col, y_col}{Projected coordinate column names, required for declustering.}
 
-\item{n_offsets}{Grid origins per axis for declustering.}
+\item{n_offsets}{Grid origins per axis for declustering and optional method
+overlap. The batch default is 10 (100 placements), rather than the
+standalone overlap audit's default of 2.}
 
 \item{min_exact_review, min_exact_fraction_review}{Configurable count-based
 review thresholds passed to \code{\link[=flag_estimate_information]{flag_estimate_information()}}. These flags do
 not remove estimates or establish statistical reliability.}
+
+\item{stratify_methods}{If TRUE, append a \code{method_estimates} table of
+unweighted lognormal summaries by normalized \code{amethod} code within each
+element/domain. The default FALSE leaves the six existing components intact.}
+
+\item{audit_method_overlap}{If TRUE, append method_overlap_support,
+method_coverage and method_overlap tables from \code{\link[=method_spatial_overlap]{method_spatial_overlap()}}
+within each element/domain. Requires cell_sizes and projected x_col/y_col.
+Independent of stratify_methods; default FALSE leaves existing outputs intact.}
+
+\item{audit_source_precision}{If TRUE, append \code{source_precision} with the
+requested original chemistry rows and \code{\link[=audit_summary_precision]{audit_summary_precision()}} fields,
+plus \code{source_precision_summary} counts by element/domain/status. Default
+FALSE leaves existing components intact. No candidate replaces model inputs.}
 }
 \value{
 A list of tibbles: estimates (input/exclusion counts and fit results),
 distributions (unweighted model comparisons), validation (counts by reason),
-declustering (optional sensitivity results), and joins (optional join audits).
+declustering (optional sensitivity results), joins (optional join audits),
+and methods (per-code input and unweighted fit-used counts with provenance).
+Estimates also include separate method-review counts/status. Semiquantitative
+concerns do not invalidate records or alter numerical estimates.
+With stratify_methods = TRUE, a seventh component, method_estimates, adds
+method_code, method_information, method_review_source, analysis_scope,
+input/exclusion counts, estimates and the same information-review fields.
+With audit_method_overlap = TRUE, three additional components record data
+availability, coverage by method/scale and named-method pair overlap. They
+use sorted unique cell sizes and the same n_offsets value as declustering.
+With audit_source_precision = TRUE, source_precision retains requested input
+row order, raw IDs/values/units and all original chemistry columns. Grouping
+columns available only in metadata are appended using the validated ID join.
+Its candidates and numeric deltas remain in each row's original units;
+estimator outputs continue to use ug/kg. source_precision_summary counts all
+requested input rows, including those excluded from numerical estimation.
 }
 \description{
 Runs validation, censored lognormal estimation, distribution comparisons,
@@ -60,4 +94,40 @@ elements. A species with no usable observations still appears in estimates.
 No automatic element selection by significance or fitted concentration occurs.
 Supply one medium/domain at a time or use group_cols to avoid pooling unlike
 sample populations. Weighted confidence limits are not computed.
+Method counts in estimates use valid chemistry, while the methods table also
+retains excluded input records. Declustering method counts instead use the
+chemistry/coordinate subset. Uncensored counts describe input coding,
+not verified measurement precision. Grouping names must not conflict with
+result fields; rename a grouping column if necessary, or group by raw amethod.
+Missing or unreviewed method information
+is not interpreted as quantitative; see \code{\link[=flag_analytical_methods]{flag_analytical_methods()}}.
+
+Optional method stratification trims whitespace and ignores code letter case,
+without modifying raw input labels. Blank/absent codes form an explicitly
+unresolved NA bucket; the literal UNKNOWN remains a separate unspecified
+bucket. Such buckets do not establish a shared analytical procedure. All
+recorded buckets are retained, including those without usable chemistry;
+absent species do not create phantom method rows. Method summaries use valid
+chemistry, irrespective of coordinate availability, and do not recalculate
+spatial weights. Ordinary limits retain their independent-observation model
+assumptions; spatial confidence limits remain experimental.
+
+Differences between strata are descriptive sensitivity results, not estimates
+of analytical bias. Method families can also differ in geology, location,
+sample support, era and reporting design. No method is selected by its fitted
+concentration or significance; no missing method, calibration or reporting
+interval is inferred. Review comparability before interpreting or pooling.
+Optional overlap tables use the chemistry/coordinate-eligible subset while
+retaining original input and unlocated/excluded counts. Missing comparisons
+stay NA. Shared cells do not establish paired samples or analytical agreement;
+grid-placement ranges are not confidence limits. Neither diagnostic modifies
+existing estimates, chooses a method or changes declustering weights.
+
+Source-precision review compares the original reported value with the first
+explicitly associated summary entry before any existing parser recovery or unit
+conversion. It does not change that recovery, select a representation, certify
+analytical reliability or filter observations. Missing summaries and unresolved
+methods remain explicit. Requested species with no input rows produce no
+phantom audit records or status counts. Grouping names must not conflict with
+the eight source-audit fields or their status-count field \code{n_observations}.
 }

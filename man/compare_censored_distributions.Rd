@@ -40,6 +40,9 @@ Defaults to \code{c("lognormal", "weibull", "loglogistic")}.}
 A tibble with one row per distribution and columns for sample counts,
 log-likelihood, degrees of freedom, AIC, delta AIC, Akaike weight, best-fit
 flag, convergence flag, and any warning/error message.
+Analytical-method review counts/status are appended for each distribution,
+including unavailable fits; see \code{\link[=flag_analytical_methods]{flag_analytical_methods()}}. Used counts
+describe eligible observations, not successful model fits.
 }
 \description{
 Fits one or more parametric distributions to left/right/interval-censored
@@ -53,8 +56,15 @@ converged and excluded from delta AIC, Akaike weights, and best-fit flags.
 Raw AIC values are retained for inspection. Invalid censoring limits are
 excluded and contradictory censoring flags raise an error, as in
 \code{\link[=fit_cen_lognorm]{fit_cen_lognorm()}}.
+Estimated-scale families with a common uncensored point in every interval
+have no finite positive-scale maximum and are excluded with message
+\code{zero_scale_boundary}. Fixed-scale exponential and Rayleigh models retain
+their ordinary fitting rules. Supplied values are not rounded or discarded.
 
 AIC comparison is not a formal proof that a distribution is true. It is a
 likelihood-based diagnostic for whether the lognormal model fits better or
 worse than alternative parametric censored models on the same data.
+Rankings are conditional on the reported censoring codes; an AIC winner does
+not resolve analytical-method concerns, validate measurement precision or
+establish independent observations. No reporting-class bounds are inferred.
 }

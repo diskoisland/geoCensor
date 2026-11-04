@@ -77,16 +77,26 @@
 #' @return A tibble with one row per distribution and columns for sample counts,
 #'   log-likelihood, degrees of freedom, AIC, delta AIC, Akaike weight, best-fit
 #'   flag, convergence flag, and any warning/error message.
+#'   Analytical-method review counts/status are appended for each distribution,
+#'   including unavailable fits; see [flag_analytical_methods()]. Used counts
+#'   describe eligible observations, not successful model fits.
 #' @details
 #' Fits with warnings or nonfinite parameter estimates are marked as not
 #' converged and excluded from delta AIC, Akaike weights, and best-fit flags.
 #' Raw AIC values are retained for inspection. Invalid censoring limits are
 #' excluded and contradictory censoring flags raise an error, as in
 #' [fit_cen_lognorm()].
+#' Estimated-scale families with a common uncensored point in every interval
+#' have no finite positive-scale maximum and are excluded with message
+#' `zero_scale_boundary`. Fixed-scale exponential and Rayleigh models retain
+#' their ordinary fitting rules. Supplied values are not rounded or discarded.
 #'
 #' AIC comparison is not a formal proof that a distribution is true. It is a
 #' likelihood-based diagnostic for whether the lognormal model fits better or
 #' worse than alternative parametric censored models on the same data.
+#' Rankings are conditional on the reported censoring codes; an AIC winner does
+#' not resolve analytical-method concerns, validate measurement precision or
+#' establish independent observations. No reporting-class bounds are inferred.
 #' @export
 compare_censored_distributions <- function(
     df,
@@ -143,7 +153,9 @@ compare_censored_distributions <- function(
       ))
     }
 
-    if (insufficient) {
+    boundary <- !dist %in% c("exponential", "rayleigh") &&
+      .censored_zero_scale_boundary(intervals$lower[intervals$ok], intervals$upper[intervals$ok])
+    if (insufficient || boundary) {
       return(tibble::tibble(
         distribution = dist,
         n_total = intervals$n_total,
@@ -154,7 +166,7 @@ compare_censored_distributions <- function(
         df = NA_real_,
         AIC = NA_real_,
         converged = FALSE,
-        message = "insufficient_data"
+        message = if (insufficient) "insufficient_data" else "zero_scale_boundary"
       ))
     }
 
@@ -232,6 +244,8 @@ compare_censored_distributions <- function(
     out$best <- FALSE
   }
 
-  out %>%
-    dplyr::arrange(.data$AIC)
+  out <- dplyr::arrange(out, .data$AIC)
+  method_summary <- .summarize_analytical_methods(df, intervals = intervals,
+    include_methods = FALSE)$summary
+  dplyr::bind_cols(out, method_summary[rep(1L, nrow(out)), , drop = FALSE])
 }

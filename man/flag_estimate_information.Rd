@@ -32,4 +32,7 @@ observations are not being classified as nondetections. A zero usable count
 gives a missing exact fraction. Count flags do not assess fit adequacy,
 spatial independence, support comparability, preferential selection, or bias.
 Clearing the flags must not be interpreted as a certification of validity.
+In particular, n_exact counts uncensored input values; it does not certify
+exact measurement precision for semiquantitative methods. Method review
+remains separate; see \code{\link[=flag_analytical_methods]{flag_analytical_methods()}}.
 }

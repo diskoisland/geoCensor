@@ -14,8 +14,14 @@ build_ag_from_csv(chem_csv, element = "Ag", to_ugkg = TRUE)
 \item{to_ugkg}{Logical; if TRUE, convert supported units to ug/kg.}
 }
 \value{
-A data frame with one row per lab_id for the requested element.
+A data frame retaining rows for the requested element, including
+invalid rows with validation_status. Duplicate results are not collapsed.
 }
 \description{
 Convenience wrapper: read a chemistry CSV and build element censoring fields
+}
+\details{
+All chemistry columns are read as text by \code{\link[=read_usgs_chemistry]{read_usgs_chemistry()}},
+preserving sparse qualifiers, encoded limits and identifier formatting.
+Malformed CSV structure stops before chemistry parsing.
 }
