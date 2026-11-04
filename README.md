@@ -89,7 +89,7 @@ These commands require the final 1.2.0 capabilities and are not supplied by
 v1.1.0. An earlier local candidate labeled 1.2.0 can lack those features;
 reinstall the checked release and restart R. Commands check capabilities as well
 as the version, so the final release is accepted without silently accepting an
-incomplete candidate. See the [release checklist](RELEASE_CHECKLIST.md).
+incomplete candidate. See the [release notes](NEWS.md).
 
 ## Quick start
 
