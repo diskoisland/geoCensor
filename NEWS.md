@@ -1,3 +1,12 @@
+# geoCensor 1.2.0.9007 (development)
+
+* Add optional `read_usgs_chemistry_select()` to scan all input batches while
+  retaining requested species, original text fields and separate source-record
+  ordinals. Malformed unselected or late records still abort the read. Parser
+  batches are bounded; retained output still grows with selected-record count.
+* Add explicit `--chunk-size=10000` to the single-element analysis command,
+  with a separate input-record index. Its default whole-file reader is unchanged.
+
 # geoCensor 1.2.0.9006 (development)
 
 * Read chemistry CSV columns as text with `read_usgs_chemistry()`, shared by

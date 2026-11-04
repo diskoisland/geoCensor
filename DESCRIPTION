@@ -1,6 +1,6 @@
 Package: geoCensor
 Title: Censoring-Aware Analysis of USGS National Geochemical Database Data
-Version: 1.2.0.9006
+Version: 1.2.0.9007
 Authors@R: person("Ross", "Edwards", email = "pedwards5@wisc.edu", role = c("aut", "cre"))
 Author: Ross Edwards [aut, cre]
 Maintainer: Ross Edwards <pedwards5@wisc.edu>
