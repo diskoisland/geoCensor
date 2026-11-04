@@ -2,7 +2,7 @@
 
 **Censoring-aware analysis of USGS National Geochemical Database (NGDB) data.**
 
-Development source version **1.2.0.9007**. Published versions and downloadable assets are listed
+Development source version **1.2.0.9008**. Published versions and downloadable assets are listed
 on the [releases page](https://github.com/diskoisland/geoCensor/releases). See
 [NEWS.md](NEWS.md) for changes and compatibility notes.
 
@@ -160,6 +160,36 @@ The single-element command accepts `--chunk-size=10000` to select its requested
 element during import and save a separate `input_record_index.csv` aligned with
 `observations.csv`. Without this option it keeps the whole-file reader. The
 all-element command also keeps its existing default.
+
+For exports that should stay on disk, version **1.2.0.9008** adds a separate
+opt-in workflow:
+
+```r
+exported <- export_usgs_chemistry("ngdbsed/chemistry.csv", "output/chemistry_export")
+# Or select exact species labels: elements = c("Ag", "Pb")
+readRDS(exported$info_file) # input fingerprint, selection and record counts
+```
+
+```sh
+Rscript inst/examples/export_chemistry.R chemistry.csv output/chemistry_export --elements=Ag,Pb --chunk-size=10000
+```
+
+Omitting species selection exports every record, including missing species.
+The parent directory must exist and the output path must be new. The export
+contains original text columns in `chemistry.csv`, a separate aligned
+`source_rows.csv`, import provenance in `export_info.rds`, and checksums in
+`export_files.csv`. Read exported chemistry with `read_usgs_chemistry()` to
+preserve character types. Blank/literal-NA fields follow the declared missing
+policy; this is not a byte-for-byte copy of the CSV encoding.
+
+Every batch is validated before the staged directory is published. Source
+size/MD5 checks before and after parsing must agree. An owned sibling reservation
+coordinates concurrent calls; existing outputs and reservations are rejected.
+Ordinary errors clean up that reservation, while forced termination may leave
+it for inspection. Other programs must leave these paths and the source untouched
+during export. Selected data frames are not accumulated, but total process memory
+and disk requirements still depend on the input and output. No analytical
+reliability or independent-site status is established by these fingerprints.
 
 The all-element command reads metadata as text and parses only explicitly
 supplied projected-coordinate columns as numeric. Blank/NA and explicit nonfinite

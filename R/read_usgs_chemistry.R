@@ -18,7 +18,7 @@
 #' a rare G qualifier must remain an upper limit, even late in a large file.
 #' Leading-zero and large identifiers are text, not numbers. The reader does not
 #' select results, reconcile methods, infer dates or certify analytical quality.
-#' @seealso [read_usgs_chemistry_select()], [build_ag_from_csv()], [analyze_elements()]
+#' @seealso [read_usgs_chemistry_select()], [export_usgs_chemistry()], [build_ag_from_csv()], [analyze_elements()]
 #' @export
 read_usgs_chemistry <- function(chem_csv) {
   if (!is.character(chem_csv) || length(chem_csv) != 1L || is.na(chem_csv) ||

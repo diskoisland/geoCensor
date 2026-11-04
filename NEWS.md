@@ -1,3 +1,13 @@
+# geoCensor 1.2.0.9008 (development)
+
+* Add optional `export_usgs_chemistry()` and an installed `export_chemistry.R`
+  command for batch exports without retaining selected data frames. All original
+  text columns and separate source-record ordinals are written to a new directory.
+  Source checksums, import provenance and output checksums accompany the export.
+* Reserve destinations for cooperating calls, reject existing outputs, and publish
+  only after complete parsing and matching before/after source fingerprints.
+  Existing readers and analysis defaults are unchanged.
+
 # geoCensor 1.2.0.9007 (development)
 
 * Add optional `read_usgs_chemistry_select()` to scan all input batches while

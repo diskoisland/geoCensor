@@ -47,7 +47,7 @@
 #' selected$source_rows
 #' build_element(selected$data, element = "Ag")
 #' unlink(path)
-#' @seealso [read_usgs_chemistry()], [analyze_elements()]
+#' @seealso [read_usgs_chemistry()], [export_usgs_chemistry()], [analyze_elements()]
 #' @export
 read_usgs_chemistry_select <- function(chem_csv, elements, chunk_size = 10000) {
   if (!is.character(chem_csv) || length(chem_csv) != 1L || is.na(chem_csv) ||
