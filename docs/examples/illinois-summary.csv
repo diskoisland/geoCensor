@@ -1,0 +1,7 @@
+element,state,n_total,n_exact,n_left,n_right,n_semiquantitative_used,method_review_status,geomean_mg_kg,weighted_10km_geomean_mg_kg,interpretation
+Pb,IL,439,439,0,0,0,method_information_unresolved,52.72789497499031,42.203524744525645,Descriptive working-model output; review sampling support and analytical method; no spatial confidence limits
+As,IL,439,439,0,0,0,method_information_unresolved,8.645079992664215,8.479296692556382,Descriptive working-model output; review sampling support and analytical method; no spatial confidence limits
+Cd,IL,439,100,339,0,0,method_information_unresolved,0.41996699344124044,0.2162973332734142,Descriptive working-model output; review sampling support and analytical method; no spatial confidence limits
+Cu,IL,439,439,0,0,0,method_information_unresolved,38.60224349340103,31.66992080048429,Descriptive working-model output; review sampling support and analytical method; no spatial confidence limits
+Hg,IL,438,408,30,0,0,method_information_unresolved,0.12238937530578832,0.07523492857811963,Descriptive working-model output; review sampling support and analytical method; no spatial confidence limits
+Zn,IL,439,439,0,0,0,method_information_unresolved,155.02663324841004,131.89443242642412,Descriptive working-model output; review sampling support and analytical method; no spatial confidence limits

@@ -37,3 +37,6 @@
 ^Papers$
 ^PAPER_REVIEW\.md$
 ^RELEASE_CHECKLIST\.md$
+
+# GitHub case-study pages and their reproduction script are separate documentation.
+^docs$

@@ -1,0 +1,7 @@
+element,state,n_total,n_exact,n_left,n_right,n_semiquantitative_used,method_review_status,geomean_mg_kg,weighted_10km_geomean_mg_kg,interpretation
+Pb,WI,1174,1167,7,0,1174,review_semiquantitative,31.30053795733039,28.36947815314139,Descriptive working-model output; review sampling support and analytical method; no spatial confidence limits
+As,WI,1174,0,1174,0,1174,review_semiquantitative,,,Descriptive working-model output; review sampling support and analytical method; no spatial confidence limits
+Cd,WI,1174,0,1174,0,1174,review_semiquantitative,,,Descriptive working-model output; review sampling support and analytical method; no spatial confidence limits
+Cu,WI,1174,1173,1,0,1174,review_semiquantitative,12.15138874120833,11.342021158270132,Descriptive working-model output; review sampling support and analytical method; no spatial confidence limits
+Hg,WI,1174,1163,11,0,0,method_information_unresolved,0.0651636763861581,0.07591550772603632,Descriptive working-model output; review sampling support and analytical method; no spatial confidence limits
+Zn,WI,1174,104,1070,0,1174,review_semiquantitative,22.600935878068682,29.560985430501642,Descriptive working-model output; review sampling support and analytical method; no spatial confidence limits
