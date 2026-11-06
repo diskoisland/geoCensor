@@ -1,0 +1,113 @@
+{
+  "title": "Silver in US soil and sediment: spatial declustering",
+  "calculation_date": "2026-11-05",
+  "example_publication_date": "2026-11-06",
+  "package": "geoCensor",
+  "package_version": "1.2.0",
+  "source": "USGS National Geochemical Database legacy soil and sediment best-value exports",
+  "source_url": "https://mrdata.usgs.gov/ngdb/",
+  "input_snapshots": [
+    {
+      "input": "ngdbsoil/main.csv",
+      "bytes": 24175904,
+      "sha256": "53a75888048af68b5e3a1b0ed482fcdf2e3493f38efb89203104d8a05741383d"
+    },
+    {
+      "input": "ngdbsoil/bestvalue.csv",
+      "bytes": 226800623,
+      "sha256": "5db3ea0b40a4d52e7ac768ef04952a49f28f0501ac48df04ce5e0aaf3c8c8733"
+    },
+    {
+      "input": "ngdbsed/main.csv",
+      "bytes": 74492412,
+      "sha256": "e67d5bfbebf6ceb9502e9e421948d1711c47537b51414f98a362fa0ad7d8faa9"
+    },
+    {
+      "input": "ngdbsed/bestvalue.csv",
+      "bytes": 642701072,
+      "sha256": "291591c10a664b5be7fca534bdb746d01aa9306f3280f2e48ad36641cbeff60c"
+    }
+  ],
+  "aggregate_sources": [
+    {
+      "file": "silver_state_summary.csv",
+      "sha256": "fa9687c12e955e828896cc067cd0c18b48d1e8f5b463fdb7fd18b244697b8b71",
+      "bytes": 97019
+    },
+    {
+      "file": "all_sizes.csv",
+      "sha256": "954daee870903b154ca691ca693fed49b766fffda7abc96ef194656f2960a211",
+      "bytes": 37495
+    }
+  ],
+  "public_files": [
+    {
+      "file": "silver-national-grid.csv",
+      "bytes": 2841,
+      "sha256": "c3b77302fa3a39139627f9d39b7a5de94a8977eb80d9ec26915f780b88ef09de"
+    },
+    {
+      "file": "silver-state-summary.csv",
+      "bytes": 97019,
+      "sha256": "fa9687c12e955e828896cc067cd0c18b48d1e8f5b463fdb7fd18b244697b8b71"
+    }
+  ],
+  "national": {
+    "rows": 12,
+    "domains": [
+      "US50_DC",
+      "CONUS"
+    ],
+    "cell_widths_km": [
+      20,
+      40,
+      80
+    ],
+    "media_codes": {
+      "soil": "soil",
+      "sed": "sediment"
+    },
+    "origin": "fixed projected (0,0) per component; 10 by 10 deterministic offsets",
+    "projections": {
+      "CONUS": "EPSG:5070",
+      "ALASKA": "EPSG:3338",
+      "HAWAII": "+proj=laea +lat_0=20.5 +lon_0=-157 +datum=WGS84 +units=m +no_defs"
+    },
+    "weight_rule": "Each occupied cell across all included components receives equal mass per origin; fit averaged per-record weights",
+    "units_mgkg": [
+      "baseline_gm",
+      "gm",
+      "am",
+      "sample_lower",
+      "sample_upper"
+    ],
+    "column_notes": {
+      "mu": "mean of log concentration in mg/kg",
+      "sd": "standard deviation of log concentration",
+      "n_positions": "reported coordinate pairs, not certified sites",
+      "weighted_exact": "weight on uncensored-coded records",
+      "kish_n": "weight imbalance diagnostic, not independent spatial sample size"
+    }
+  },
+  "state": {
+    "rows": 102,
+    "jurisdictions": "50 states and District of Columbia, separately for each medium",
+    "cell_widths_km": [
+      5,
+      10,
+      20
+    ],
+    "origin": "per-case projected minimum extent; 10 by 10 offsets",
+    "projections": "Per-medium, per-state WGS84 LAEA; center is coordinate medians of all bounded explicitly US metadata before Ag selection, rounded to 10 decimals",
+    "units": "Concentration fields ending _mgkg are mg/kg; fractions are 0 to 1; pct_censored is percent"
+  },
+  "scope": "Pooled recorded-method descriptive fits on occupied sampled support. No raw sample records included.",
+  "reproduction": "The public standalone workflow implements these settings and is checked on synthetic inputs and independent numerical fixtures; archived aggregate results were not all refitted for this publication. Generated long-form estimates differ in layout from the curated wide state table.",
+  "limits": [
+    "No universal optimal cell width",
+    "No spatial confidence limits",
+    "No harmonization of analytical methods, soil horizons or sediment types",
+    "Arithmetic model moments are exploratory and can fail high-tail checks",
+    "Missing or unavailable estimates remain NA, never zero or an automatic national fallback"
+  ]
+}

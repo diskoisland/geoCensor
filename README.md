@@ -26,12 +26,22 @@ including cadmium, whose reporting limits leave much of its distribution unresol
 The separate [Wisconsin sediment example](docs/examples/wisconsin-metals.md)
 shows why semiquantitative methods and all-censored elements need explicit review.
 
+## Silver across the US
+
+The [national and state silver example](docs/examples/national-state-silver.md)
+compares soil and sediment geometric means across declustering cell widths.
+It includes downloadable aggregate results, figures and a reproduction script.
+The national comparison uses 20, 40 and 80 km cells; state summaries retain
+5, 10 and 20 km sensitivity. Missing estimates remain missing, and the guide
+explains the limits imposed by censoring, analytical methods and sampling support.
+
 ## Start here
 
 | Your task | Guide |
 | --- | --- |
 | Try the package without downloading data | [Small synthetic example below](#try-a-small-example) |
 | Reproduce the sediment figures | [Inputs, script and output guide](docs/examples/README.md) |
+| Compare national and state Ag estimates with spatial weights | [Silver declustering example](docs/examples/national-state-silver.md) |
 | Run the full installed USGS workflow | [Synthetic workflow vignette](vignettes/usgs-workflow.Rmd) |
 | Audit the Upper Illinois project across all species | [Installed case-study vignette](vignettes/illinois-case-study.Rmd) |
 | Choose estimators and review assumptions | [Methods and function guide](docs/methods.md) |

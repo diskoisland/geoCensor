@@ -1,4 +1,12 @@
-# Reproduce the sediment examples
+# Reproduce the USGS examples
+
+| Example | What it demonstrates |
+| --- | --- |
+| [National and state silver](national-state-silver.md) | Soil and sediment analyzed separately; cell declustering, grid sensitivity and unavailable estimates. Includes public aggregate tables and a standalone reproduction script. |
+| [Upper Illinois metals](illinois-metals.md) | Project-level sediment summaries with censoring, spatial weights and multiple elements. |
+| [Wisconsin metals](wisconsin-metals.md) | Semiquantitative methods and limited measurement information in a sediment project. |
+
+## Sediment project workflow
 
 The Illinois and Wisconsin pages use the released geoCensor 1.2.0 analysis
 functions. Their additional reproduction script lives in this repository's
