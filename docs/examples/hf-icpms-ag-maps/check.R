@@ -4,6 +4,7 @@ if(!file.exists(script)) script<-gsub('~+~',' ',script,fixed=TRUE)
 here <- dirname(normalizePath(script,mustWork=TRUE));source(file.path(here,'functions.R'))
 hf_require(c('geoCensor','sf','survival','digest','jsonlite'))
 x <- hf_read(here);d <- hf_observations(x$data);m <- x$manifest
+stopifnot(!'arrow'%in%loadedNamespaces())
 stopifnot(nrow(d)==m$expected$full_reports,sum(d$in_CONUS_map)==m$expected$CONUS_reports)
 for(k in names(m$expected$full_methods)) stopifnot(sum(d$method==k)==m$expected$full_methods[[k]])
 for(k in names(m$expected$full_censoring))

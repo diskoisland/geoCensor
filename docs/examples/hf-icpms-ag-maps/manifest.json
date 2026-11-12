@@ -1,5 +1,6 @@
 {
   "schema_version": "1.0",
+  "storage_format": "R serialization version 2; materialized base vectors; no Arrow deserialization hooks",
   "cell_width_m": 20000,
   "origin_m": [0, 0],
   "circle_radius_m": 8000,
@@ -50,13 +51,13 @@
   "files": [
     {
       "file": "data.RDS",
-      "sha256": "1c2f7752a916ef79a32be7d359181aacb300c307d22e76e0023be70a2b724650",
-      "bytes": 1493868
+      "sha256": "fe05a9f15c530947199a45af4b846cf20dafe9d8d4d55e47e28409fc32fae45c",
+      "bytes": 1512576
     },
     {
       "file": "reference-cells.RDS",
-      "sha256": "90556ac50ac5b956c1e97786d9d33717e447c3cabeb370911cd9fadd44b0cbc7",
-      "bytes": 275448
+      "sha256": "4b65e8d2c7cab2385daac46477c04d3adf5cf865df8e7bdd0e777bd2804bdc85",
+      "bytes": 275124
     }
   ],
   "source_extracts": [

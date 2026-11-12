@@ -3,6 +3,8 @@
 `data.RDS` is a base-R list. It contains data and metadata, with no executable
 functions, spatial boundary objects, local filesystem paths or private campaign
 records. Missing source values remain `NA`.
+Both bundled RDS files use materialized ordinary R vectors and serialization
+version 2. Reading them does not require Arrow or load its namespace.
 
 | Component | Content |
 | --- | --- |
