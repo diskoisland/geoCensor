@@ -9,7 +9,9 @@ You can inspect the [national grid results](data/silver-national-grid.csv),
 [state results](data/silver-state-summary.csv) and
 [source provenance](data/source-provenance.json) without downloading the
 underlying database. The [reproduction script](national-state-silver.R) uses
-separately downloaded USGS exports; no individual sample records are bundled.
+separately downloaded USGS exports; no individual sample records are bundled
+for this older workflow. The separate [HF ICP-MS map example](hf-icpms-ag-maps/README.md)
+provides its own licensed cohort and has a different selection and purpose.
 The displayed results were calculated on November 5, 2026 with geoCensor 1.2.0.
 They are exports of that completed analysis; publishing this example did not
 rerun the full national and state study.
