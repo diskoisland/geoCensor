@@ -35,6 +35,14 @@ The national comparison uses 20, 40 and 80 km cells; state summaries retain
 5, 10 and 20 km sensitivity. Missing estimates remain missing, and the guide
 explains the limits imposed by censoring, analytical methods and sampling support.
 
+The [HF ICP-MS silver maps](docs/examples/hf-icpms-ag-maps/README.md) provide a
+downloadable CC0 cohort RDS and R code for pooled, soil and sediment maps in
+fixed 20 km cells, with western close-ups. All six maps use the same
+blue–yellow–red 0.05–0.30 mg/kg scale. Hollow cells keep unavailable local
+estimates visible; no concentrations are predicted in unsampled areas.
+
+![Combined soil and sediment Ag geometric means in occupied 20 km cells, using the full HF ICP-MS and residue-sintering cohort](docs/figures/ag-hf-pooled-conus.png)
+
 ## Start here
 
 | Your task | Guide |
@@ -42,6 +50,7 @@ explains the limits imposed by censoring, analytical methods and sampling suppor
 | Try the package without downloading data | [Small synthetic example below](#try-a-small-example) |
 | Reproduce the sediment figures | [Inputs, script and output guide](docs/examples/README.md) |
 | Compare national and state Ag estimates with spatial weights | [Silver declustering example](docs/examples/national-state-silver.md) |
+| Explore 20 km Ag maps with a bundled, licensed data cohort | [HF ICP-MS map example](docs/examples/hf-icpms-ag-maps/README.md) |
 | Run the full installed USGS workflow | [Synthetic workflow vignette](vignettes/usgs-workflow.Rmd) |
 | Audit the Upper Illinois project across all species | [Installed case-study vignette](vignettes/illinois-case-study.Rmd) |
 | Choose estimators and review assumptions | [Methods and function guide](docs/methods.md) |
@@ -109,10 +118,13 @@ anomaly or source interpretation. See [validation](docs/validation.md).
 
 Download the original sediment or soil exports separately from the
 [USGS NGDB portal](https://mrdata.usgs.gov/ngdb/). The package contains no raw
-geochemical database. The examples identify their inputs, selection rules,
-methods and limitations; their reproduction script saves source-record indices,
-configuration, software versions and checksums. Soil and sediment are analyzed
-as distinct sample media.
+geochemical database. The repository's HF ICP-MS map example separately includes
+a selected CC0 cohort, with data rights, original qualifiers and source-row
+identifiers. The examples identify their inputs, selection rules, methods and
+limitations; their reproduction scripts save source-record indices,
+configuration, software versions and checksums. The HF ICP-MS map example shows
+soil and sediment separately and in an explicitly labelled pool; the other
+workflows keep media separate.
 
 ## Citation and license
 

@@ -3,6 +3,7 @@
 | Example | What it demonstrates |
 | --- | --- |
 | [National and state silver](national-state-silver.md) | Soil and sediment analyzed separately; cell declustering, grid sensitivity and unavailable estimates. Includes public aggregate tables and a standalone reproduction script. |
+| [HF ICP-MS silver maps](hf-icpms-ag-maps/README.md) | Downloadable CC0 cohort RDS; pooled, soil and sediment maps in fixed 20 km cells, western close-ups and a fresh R refit. |
 | [Upper Illinois metals](illinois-metals.md) | Project-level sediment summaries with censoring, spatial weights and multiple elements. |
 | [Wisconsin metals](wisconsin-metals.md) | Semiquantitative methods and limited measurement information in a sediment project. |
 
@@ -16,8 +17,9 @@ functions. Their additional reproduction script lives in this repository's
 
 Download native sediment `main.csv` and `bestvalue.csv` exports separately from
 the [USGS NGDB portal](https://mrdata.usgs.gov/ngdb/), retaining their provenance.
-No geochemical database or raw selected-record table is bundled here. The tested
-snapshot is identified by:
+These two sediment-project examples require separately downloaded source data.
+The [HF ICP-MS silver map example](hf-icpms-ag-maps/README.md) separately provides
+its licensed selected cohort as an RDS. The sediment-project snapshot is identified by:
 
 | Input | SHA256 |
 | --- | --- |

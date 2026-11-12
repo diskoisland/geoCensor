@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0",
+  "cell_width_m": 20000,
+  "origin_m": [0, 0],
+  "circle_radius_m": 8000,
+  "crs": "+proj=aea +lat_0=23 +lon_0=-96 +lat_1=29.5 +lat_2=45.5 +datum=WGS84 +units=m +no_defs +type=crs",
+  "colour_range_mg_kg": [0.050000000000000003, 0.29999999999999999],
+  "colour_scale": "logarithmic",
+  "palette": "RdYlBu_r",
+  "supports": {
+    "reports": 6,
+    "numerical_values": 2,
+    "coordinate_pairs": 3
+  },
+  "score_tolerance": 9.9999999999999995e-07,
+  "objective_gap_tolerance": 1e-08,
+  "reference_relative_tolerance": 0.0001,
+  "expected": {
+    "full_reports": 119490,
+    "CONUS_reports": 114267,
+    "full_methods": {
+      "MS_HF": 68190,
+      "MS_HF_UT": 51250,
+      "MS_HFST": 50
+    },
+    "full_censoring": {
+      "numerical": 73129,
+      "left": 46293,
+      "right": 68
+    },
+    "pooled": {
+      "reports": 114267,
+      "occupied": 8244,
+      "coloured": 2616,
+      "hollow": 5628
+    },
+    "soil": {
+      "reports": 48414,
+      "occupied": 6450,
+      "coloured": 974,
+      "hollow": 5476
+    },
+    "sediment": {
+      "reports": 65853,
+      "occupied": 3618,
+      "coloured": 1905,
+      "hollow": 1713
+    }
+  },
+  "files": [
+    {
+      "file": "data.RDS",
+      "sha256": "1c2f7752a916ef79a32be7d359181aacb300c307d22e76e0023be70a2b724650",
+      "bytes": 1493868
+    },
+    {
+      "file": "reference-cells.RDS",
+      "sha256": "90556ac50ac5b956c1e97786d9d33717e447c3cabeb370911cd9fadd44b0cbc7",
+      "bytes": 275448
+    }
+  ],
+  "source_extracts": [
+    {
+      "file": "POOLED_AG_HF_ICPMS_SOURCE_REPORTS.parquet",
+      "sha256": "d6facfc03c5f7e5c8996c1b751fd72379adbcb9bf77cba220db0baa5ec0700f4"
+    },
+    {
+      "file": "POOLED_AG_HF_ICPMS_MATCHED_METADATA.parquet",
+      "sha256": "e25ba25ad412a91809b53983ae4cc479961e983eec6830ffcb9a8fbe56570dac"
+    }
+  ],
+  "reference_engine": "Archived Python/SciPy censored-lognormal cell MLEs independently verified with R survival.",
+  "reference_state_boundaries": {
+    "package": "maps",
+    "version": "3.4.3",
+    "license": "GPL-2",
+    "included_in_RDS": false
+  }
+}

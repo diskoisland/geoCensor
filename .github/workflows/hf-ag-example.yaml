@@ -1,0 +1,40 @@
+name: HF ICP-MS silver example
+
+on:
+  pull_request:
+    paths:
+      - 'docs/examples/hf-icpms-ag-maps/**'
+      - '.github/workflows/hf-ag-example.yaml'
+      - 'R/**'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/examples/hf-icpms-ag-maps/**'
+      - '.github/workflows/hf-ag-example.yaml'
+      - 'R/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            any::sf
+            any::maps
+            any::jsonlite
+            any::digest
+      - name: Install geoCensor
+        run: R CMD INSTALL .
+      - name: Check cohort and numerical edge cases
+        run: Rscript docs/examples/hf-icpms-ag-maps/check.R
+      - name: Refit every displayed cell and reproduce all six maps
+        run: Rscript docs/examples/hf-icpms-ag-maps/run.R "$RUNNER_TEMP/ag-hf-example" --refit

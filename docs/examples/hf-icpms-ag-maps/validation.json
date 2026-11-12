@@ -1,0 +1,63 @@
+{
+  "status": "PASS",
+  "mode": "fresh_R_refit",
+  "checks": {
+    "pooled": {
+      "occupied": 8244,
+      "coloured": 2616,
+      "hollow": 5628,
+      "max_GM_relative_error": 6.1965461761737117e-08
+    },
+    "soil": {
+      "occupied": 6450,
+      "coloured": 974,
+      "hollow": 5476,
+      "max_GM_relative_error": 3.9705425836089603e-08
+    },
+    "sediment": {
+      "occupied": 3618,
+      "coloured": 1905,
+      "hollow": 1713,
+      "max_GM_relative_error": 3.2316032849699639e-08
+    }
+  },
+  "source_snapshot": "USGS_CURRENT_SUPPLIED_20251118",
+  "inputs": [
+    {
+      "file": "data.RDS",
+      "sha256": "1c2f7752a916ef79a32be7d359181aacb300c307d22e76e0023be70a2b724650",
+      "bytes": 1493868
+    },
+    {
+      "file": "reference-cells.RDS",
+      "sha256": "90556ac50ac5b956c1e97786d9d33717e447c3cabeb370911cd9fadd44b0cbc7",
+      "bytes": 275448
+    }
+  ],
+  "geometry": {
+    "crs": "+proj=aea +lat_0=23 +lon_0=-96 +lat_1=29.5 +lat_2=45.5 +datum=WGS84 +units=m +no_defs +type=crs",
+    "cell_width_m": 20000,
+    "origin_m": [0, 0],
+    "circle_radius_m": 8000
+  },
+  "versions": [
+    {
+      "package": "geoCensor",
+      "version": "1.2.0"
+    },
+    {
+      "package": "survival",
+      "version": "3.8.6"
+    },
+    {
+      "package": "sf",
+      "version": "1.1.1"
+    },
+    {
+      "package": "maps",
+      "version": "3.4.3"
+    }
+  ],
+  "confidence_intervals": false,
+  "interpolation": false
+}
